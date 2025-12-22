@@ -4,6 +4,18 @@ Next.js frontend + FastAPI backend + Postgres.
 
 ## Local development
 
+### Option A: Run everything via Docker
+
+```bash
+docker compose up --build
+```
+
+Frontend: http://localhost:3000
+Backend: http://localhost:8000
+API docs: http://localhost:8000/docs
+
+### Option B: Run Postgres in Docker + run apps locally
+
 ### 1) Start Postgres
 
 ```bash

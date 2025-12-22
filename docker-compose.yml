@@ -11,5 +11,35 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  api:
+    build:
+      context: ./backend
+    container_name: barber_app_api
+    environment:
+      APP_NAME: "Barber App"
+      ENVIRONMENT: dev
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      JWT_SECRET: change-me-in-dev
+      ACCESS_TOKEN_EXPIRES_MINUTES: 15
+      REFRESH_TOKEN_EXPIRES_DAYS: 30
+      CORS_ORIGINS: "http://localhost:3000"
+      DATABASE_URL: "postgresql+psycopg://barber:barber@db:5432/barber_app"
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./frontend
+    container_name: barber_app_web
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:8000"
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
 volumes:
   postgres_data:
