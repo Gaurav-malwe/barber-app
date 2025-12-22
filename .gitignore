@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Backend
+backend/.venv/
+backend/.env
+backend/.env.*
+backend/*.sqlite*
+
+# Node / Next
+**/node_modules/
+**/.next/
+**/out/
+**/.turbo/
+**/.vercel/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
