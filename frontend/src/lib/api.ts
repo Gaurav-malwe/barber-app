@@ -11,14 +11,31 @@ export async function apiFetch(path: string, init?: RequestInit) {
   });
 
   if (!res.ok) {
-    let detail = "Request failed";
+    let detail: unknown = "Request failed";
     try {
       const data = await res.json();
-      detail = data?.detail || detail;
+      detail = data?.detail ?? detail;
     } catch {
       // ignore
     }
-    throw new Error(detail);
+
+    if (typeof detail === "string") throw new Error(detail);
+    if (Array.isArray(detail)) {
+      const msg = detail
+        .map((e: any) => {
+          const loc = Array.isArray(e?.loc) ? e.loc.slice(1).join(".") : "field";
+          const m = typeof e?.msg === "string" ? e.msg : "Invalid value";
+          return `${loc}: ${m}`;
+        })
+        .join("\n");
+      throw new Error(msg || "Request failed");
+    }
+
+    try {
+      throw new Error(JSON.stringify(detail));
+    } catch {
+      throw new Error("Request failed");
+    }
   }
 
   if (res.status === 204) return null;

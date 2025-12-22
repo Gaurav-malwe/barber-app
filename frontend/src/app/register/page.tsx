@@ -63,6 +63,7 @@ export default function RegisterPage() {
           className="w-full rounded-lg border border-zinc-200 p-3"
           placeholder="Password (min 8 chars)"
           type="password"
+          minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
