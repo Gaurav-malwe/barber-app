@@ -22,9 +22,14 @@ export async function apiFetch(path: string, init?: RequestInit) {
     if (typeof detail === "string") throw new Error(detail);
     if (Array.isArray(detail)) {
       const msg = detail
-        .map((e: any) => {
-          const loc = Array.isArray(e?.loc) ? e.loc.slice(1).join(".") : "field";
-          const m = typeof e?.msg === "string" ? e.msg : "Invalid value";
+        .map((e: unknown) => {
+          const rec = (typeof e === "object" && e !== null ? (e as Record<string, unknown>) : null);
+          const locRaw = rec ? rec["loc"] : undefined;
+          const msgRaw = rec ? rec["msg"] : undefined;
+          const loc = Array.isArray(locRaw)
+            ? locRaw.map(String).slice(1).join(".")
+            : "field";
+          const m = typeof msgRaw === "string" ? msgRaw : "Invalid value";
           return `${loc}: ${m}`;
         })
         .join("\n");

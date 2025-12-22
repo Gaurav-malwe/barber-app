@@ -1,0 +1,480 @@
+{
+  "app_name": "NaayiKhata (Barber CRM + Daily Bill Book)",
+  "target_stack": "Next.js, TailwindCSS, Mobile-first responsive",
+  "design_system": {
+    "colors": {
+      "primary": {
+        "bg": "bg-gray-900",
+        "text": "text-gray-900",
+        "text_invert": "text-white"
+      },
+      "accent_main": {
+        "bg": "bg-emerald-500",
+        "text": "text-emerald-600",
+        "border": "border-emerald-500",
+        "bg_light": "bg-emerald-100"
+      },
+      "accent_warning": {
+        "bg": "bg-amber-500",
+        "text": "text-amber-600"
+      },
+      "accent_danger": {
+        "bg": "bg-rose-600",
+        "text": "text-rose-600",
+        "bg_light": "bg-rose-50",
+        "border": "border-rose-200"
+      },
+      "backgrounds": {
+        "app": "bg-gray-50",
+        "card": "bg-white"
+      },
+      "borders": "border-gray-200",
+      "text": {
+        "primary": "text-gray-900",
+        "secondary": "text-gray-600",
+        "muted": "text-gray-500",
+        "on_dark": "text-white"
+      }
+    },
+    "typography": {
+      "font_family": "Geist Sans (fallback Inter/Roboto)",
+      "base_size": "16px",
+      "rules": [
+        "Always ensure strong contrast: no light-gray text on white for critical info.",
+        "Inputs must have dark text and visible placeholders.",
+        "Use sentence-case labels and simple Hindi-friendly English microcopy."
+      ]
+    },
+    "spacing": {
+      "grid_base": "4px",
+      "standard_padding": "p-4",
+      "standard_margin": "m-4",
+      "gap": "gap-4"
+    },
+    "components": {
+      "tap_targets": "min-h-[48px]",
+      "rounded": "rounded-lg",
+      "shadow": "shadow-sm",
+      "input": "w-full rounded-lg border border-gray-200 bg-white px-3 py-3 text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500",
+      "button_primary": "w-full rounded-lg bg-emerald-500 text-white font-semibold",
+      "button_outline": "w-full rounded-lg border border-gray-200 bg-white text-gray-900 font-semibold"
+    }
+  },
+  "screens": [
+    {
+      "id": "landing_page",
+      "name": "Landing Page (Marketing Lite)",
+      "route": "/",
+      "layout": "Single column, centered content, vertical stack, white background.",
+      "components": [
+        {
+          "type": "header",
+          "style_hints": "flex justify-between items-center p-4",
+          "children": [
+            { "type": "logo_text", "text": "NaayiKhata", "style_hints": "font-bold text-xl text-emerald-600" },
+            { "type": "button", "variant": "outline", "text": "Login", "action": "navigate to /login" }
+          ]
+        },
+        {
+          "type": "hero_section",
+          "style_hints": "flex flex-col items-center text-center px-6 mt-8",
+          "children": [
+            { "type": "image", "alt": "Barber illustration", "style_hints": "h-64 w-auto mb-8" },
+            { "type": "h1", "text": "Daily Bill Book + Customer Khata for Barbers.", "style_hints": "text-3xl font-bold text-gray-900 mb-3" },
+            { "type": "subhead", "text": "Create bills in seconds, track customers, and close your day with clean totals.", "style_hints": "text-gray-600 text-base mb-6" },
+            { "type": "button", "variant": "primary_large", "text": "Create Free Account", "style_hints": "w-full bg-emerald-500 text-white py-4 rounded-lg font-semibold text-lg mb-4", "action": "navigate to /register" },
+            { "type": "trust_signals", "style_hints": "grid grid-cols-3 gap-2 w-full mt-6 text-gray-600 text-xs", "children": [
+                { "icon": "shield", "text": "Secure" },
+                { "icon": "receipt", "text": "Simple billing" },
+                { "icon": "whatsapp", "text": "WhatsApp receipts" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register",
+      "name": "Register (Shop + Account)",
+      "route": "/register",
+      "layout": "Centered card on light background. Simple 4-field form.",
+      "components": [
+        {
+          "type": "form_card",
+          "style_hints": "bg-white p-6 m-4 rounded-lg shadow-sm flex flex-col gap-4",
+          "children": [
+            { "type": "h2", "text": "Create your shop", "style_hints": "text-2xl font-bold text-center" },
+            { "type": "helper", "text": "Takes less than 1 minute.", "style_hints": "text-center text-sm text-gray-600" },
+            { "type": "input_text", "label": "Shop name", "placeholder": "e.g., New Look Salon", "required": true },
+            { "type": "input_text", "label": "PAN (for uniqueness)", "placeholder": "ABCDE1234F", "mask": "uppercase", "helper_text": "We use PAN to keep each shop unique.", "required": true },
+            { "type": "input_email", "label": "Email", "placeholder": "owner@shop.com", "required": true },
+            { "type": "input_password", "label": "Password", "helper_text": "Minimum 8 characters.", "required": true },
+            { "type": "button", "variant": "primary", "text": "Create account", "style_hints": "w-full bg-emerald-500 h-12", "action": "POST /api/auth/register then navigate to /dashboard" },
+            { "type": "divider", "style_hints": "border-t border-gray-100" },
+            { "type": "inline_link_row", "text": "Already have an account?", "link_text": "Login", "action": "navigate to /login" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "login",
+      "name": "Login",
+      "route": "/login",
+      "layout": "Centered form on gray background.",
+      "components": [
+        {
+          "type": "form_card",
+          "style_hints": "bg-white p-6 m-4 rounded-lg shadow-sm flex flex-col gap-4 justify-center min-h-[50vh]",
+          "children": [
+            { "type": "h2", "text": "Welcome back", "style_hints": "text-2xl font-bold text-center" },
+            { "type": "input_email", "label": "Email", "required": true },
+            { "type": "input_password", "label": "Password", "required": true },
+            { "type": "button", "variant": "primary", "text": "Login", "style_hints": "w-full bg-emerald-500 h-12", "action": "POST /api/auth/login then navigate to /dashboard" },
+            { "type": "link", "text": "Forgot password?", "style_hints": "text-emerald-600 text-sm text-center" },
+            { "type": "inline_link_row", "text": "New here?", "link_text": "Create account", "action": "navigate to /register" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dashboard_home",
+      "name": "Dashboard (Today)",
+      "route": "/dashboard",
+      "layout": "Top header with settings icon, scrollable main body content, fixed bottom navigation bar.",
+      "components": [
+        {
+          "type": "dashboard_header",
+          "style_hints": "bg-gray-900 text-white p-4 flex justify-between items-center",
+          "children": [
+            { "type": "shop_name", "text": "{shop_name} (e.g., New Look Salon)", "style_hints": "font-bold text-lg" },
+            { "type": "icon_button", "icon": "gear", "action": "navigate to /settings" }
+          ]
+        },
+        {
+          "type": "scrollable_body",
+          "style_hints": "p-4 pb-20 bg-gray-50 h-full overflow-y-auto",
+          "children": [
+            {
+              "type": "sales_summary_card",
+              "style_hints": "bg-white rounded-lg p-6 shadow-sm mb-6 text-center",
+              "children": [
+                { "type": "label", "text": "Today's Sales", "style_hints": "text-gray-500 mb-2" },
+                { "type": "big_number", "text": "₹ {today_total}", "style_hints": "text-4xl font-bold text-gray-900 mb-6" },
+                {
+                  "type": "split_row",
+                  "style_hints": "flex justify-around border-t pt-4",
+                  "children": [
+                    { "icon": "rupee", "label": "Cash", "value": "₹ {cash_total}" },
+                    { "icon": "qr-code", "label": "UPI", "value": "₹ {upi_total}" }
+                  ]
+                }
+              ]
+            },
+            { "type": "section_title", "text": "Quick Actions", "style_hints": "font-semibold text-gray-700 mb-4" },
+            {
+              "type": "quick_actions_grid",
+              "style_hints": "grid grid-cols-3 gap-4",
+              "children": [
+                { "type": "action_button_large", "label": "New Bill", "icon": "plus-large", "style_hints": "bg-emerald-500 text-white aspect-square rounded-xl flex flex-col items-center justify-center gap-2", "action": "navigate to /bill/new" },
+                { "type": "action_button_normal", "label": "Add Customer", "icon": "user-plus", "style_hints": "bg-white text-gray-700 aspect-square rounded-xl flex flex-col items-center justify-center gap-2 shadow-sm", "action": "navigate to /customers/new" },
+                { "type": "action_button_normal", "label": "Services", "icon": "scissors", "style_hints": "bg-white text-gray-700 aspect-square rounded-xl flex flex-col items-center justify-center gap-2 shadow-sm", "action": "navigate to /services" }
+              ]
+            },
+            {
+              "type": "recent_bills_list",
+              "style_hints": "mt-6",
+              "children": [
+                { "type": "section_title", "text": "Recent bills", "style_hints": "font-semibold text-gray-700 mb-3" },
+                { "type": "list_item", "title": "Walk-in", "subtitle": "Haircut + Beard", "meta": "₹ 200 • Cash", "action": "navigate to /bill/{id}/receipt" },
+                { "type": "list_item", "title": "Rohit", "subtitle": "Haircut", "meta": "₹ 150 • UPI", "action": "navigate to /bill/{id}/receipt" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "bottom_nav",
+          "style_hints": "fixed bottom-0 w-full bg-white border-t flex justify-around p-2 pb-4",
+          "active_tab": "Home",
+          "tabs": [
+            { "icon": "home", "label": "Home", "state": "active (text-emerald-600)" },
+            { "icon": "users", "label": "Customers", "state": "inactive (text-gray-400)", "action": "navigate to /customers" },
+            { "icon": "chart-bar", "label": "Reports", "state": "inactive (text-gray-400)", "action": "navigate to /reports" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "customers_list",
+      "name": "Customers (List + Search)",
+      "route": "/customers",
+      "layout": "Header + search input, list with phone, FAB to add customer.",
+      "components": [
+        { "type": "app_header", "title": "Customers", "show_back_btn": true },
+        {
+          "type": "search_bar",
+          "style_hints": "p-4",
+          "children": [
+            { "type": "input_search", "placeholder": "Search by name or phone", "icon": "search" }
+          ]
+        },
+        {
+          "type": "list",
+          "style_hints": "px-4 pb-24",
+          "children": [
+            { "type": "list_item", "title": "Rohit", "subtitle": "+91 98xxxxxx10", "meta": "Last visit: Today", "action": "navigate to /customers/{id}" },
+            { "type": "list_item", "title": "Aman", "subtitle": "+91 99xxxxxx22", "meta": "Last visit: 3 days ago", "action": "navigate to /customers/{id}" }
+          ]
+        },
+        { "type": "fab", "icon": "plus", "text": "Add", "action": "navigate to /customers/new" }
+      ]
+    },
+    {
+      "id": "customer_detail",
+      "name": "Customer Details",
+      "route": "/customers/{id}",
+      "layout": "Header, customer card, visit history list, CTA to create bill.",
+      "components": [
+        { "type": "app_header", "title": "Customer", "show_back_btn": true },
+        {
+          "type": "customer_card",
+          "style_hints": "m-4 bg-white rounded-lg border border-gray-200 p-4",
+          "children": [
+            { "type": "title", "text": "Rohit", "style_hints": "text-lg font-semibold" },
+            { "type": "subtitle", "text": "+91 98xxxxxx10", "style_hints": "text-gray-600" },
+            { "type": "notes", "text": "Prefers light beard trim.", "style_hints": "text-sm text-gray-600 mt-2" }
+          ]
+        },
+        {
+          "type": "section",
+          "style_hints": "px-4 pb-28",
+          "children": [
+            { "type": "section_title", "text": "Bill history", "style_hints": "font-semibold text-gray-700 mb-3" },
+            { "type": "list_item", "title": "₹ 200", "subtitle": "Haircut + Beard", "meta": "Today • Cash", "action": "navigate to /bill/{id}/receipt" },
+            { "type": "list_item", "title": "₹ 150", "subtitle": "Haircut", "meta": "10 Dec • UPI", "action": "navigate to /bill/{id}/receipt" }
+          ]
+        },
+        { "type": "sticky_bottom_cta", "text": "Create bill", "variant": "primary", "action": "navigate to /bill/new?customer_id={id}" }
+      ]
+    },
+    {
+      "id": "services_list",
+      "name": "Services (Manage Pricing)",
+      "route": "/services",
+      "layout": "Header + list of services with price and active toggle + add service button.",
+      "components": [
+        { "type": "app_header", "title": "Services", "show_back_btn": true },
+        {
+          "type": "list",
+          "style_hints": "p-4 pb-24",
+          "children": [
+            { "type": "service_row", "name": "Haircut", "price": "₹ 150", "active": true, "action": "edit" },
+            { "type": "service_row", "name": "Beard", "price": "₹ 80", "active": true, "action": "edit" },
+            { "type": "service_row", "name": "Trimming", "price": "₹ 60", "active": true, "action": "edit" },
+            { "type": "service_row", "name": "Facial", "price": "₹ 250", "active": true, "action": "edit" }
+          ]
+        },
+        { "type": "fab", "icon": "plus", "text": "Add service", "action": "open add/edit service bottom sheet" }
+      ]
+    },
+    {
+      "id": "create_bill",
+      "name": "Create Bill (Checkout)",
+      "route": "/bill/new",
+      "layout": "Standard app header with back button, scrollable content body, fixed bottom action sheet for payment.",
+      "components": [
+        { "type": "app_header", "title": "New Bill", "show_back_btn": true },
+        {
+          "type": "scrollable_body",
+          "style_hints": "pb-40 bg-gray-50 h-full overflow-y-auto",
+          "children": [
+            {
+              "type": "customer_select_banner",
+              "style_hints": "bg-white p-4 mb-4",
+              "children": [
+                { "type": "input_search_dropdown", "placeholder": "Select Customer (optional)", "icon": "search" }
+              ]
+            },
+            { "type": "section_title", "text": "Tap to add items", "style_hints": "px-4 font-semibold text-gray-700 mb-2" },
+            {
+              "type": "quick_add_services_scroll",
+              "style_hints": "flex overflow-x-auto gap-2 px-4 pb-4 no-scrollbar",
+              "children": [
+                 { "type": "service_chip", "label": "+ Haircut ₹150", "style_hints": "bg-white border border-emerald-500 text-emerald-700 rounded-full px-4 py-2 whitespace-nowrap" },
+                 { "type": "service_chip", "label": "+ Beard ₹80", "style_hints": "bg-white border border-emerald-500 text-emerald-700 rounded-full px-4 py-2 whitespace-nowrap" },
+                 { "type": "service_chip", "label": "+ Trimming ₹60", "style_hints": "bg-white border border-emerald-500 text-emerald-700 rounded-full px-4 py-2 whitespace-nowrap" },
+                 { "type": "service_chip", "label": "+ Facial ₹250", "style_hints": "bg-white border border-emerald-500 text-emerald-700 rounded-full px-4 py-2 whitespace-nowrap" }
+              ]
+            },
+            {
+              "type": "bill_summary_card",
+              "style_hints": "bg-white m-4 p-4 rounded-lg shadow-sm",
+              "children": [
+                { "type": "section_title", "text": "Bill Summary", "style_hints": "font-semibold mb-4" },
+                { "type": "line_item", "text": "Haircut x 1", "price": "₹150", "style_hints": "flex justify-between py-2 border-b border-gray-100" },
+                { "type": "line_item", "text": "Beard x 1", "price": "₹80", "style_hints": "flex justify-between py-2 border-b border-gray-100" },
+                { "type": "discount_row", "label": "Discount", "value": "₹ 0", "action": "edit discount" },
+                { "type": "total_row", "label": "Total to Pay:", "value": "₹ 230", "style_hints": "flex justify-between text-xl font-bold" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "fixed_bottom_action_sheet",
+          "style_hints": "fixed bottom-0 w-full bg-white border-t p-4 flex flex-col gap-4 rounded-t-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]",
+          "children": [
+            {
+              "type": "payment_method_toggle",
+              "style_hints": "flex w-full h-12",
+              "children": [
+                { "type": "toggle_btn", "label": "CASH", "state": "active", "style_hints": "flex-1 bg-emerald-500 text-white font-semibold rounded-l-lg flex justify-center items-center" },
+                { "type": "toggle_btn", "label": "UPI", "state": "inactive", "style_hints": "flex-1 bg-gray-100 text-gray-600 font-semibold rounded-r-lg flex justify-center items-center border border-l-0 border-gray-200" }
+              ]
+            },
+            {
+              "type": "conditional_input",
+              "condition": "payment_method === UPI",
+              "label": "UPI Reference No. (Optional)",
+              "placeholder": "e.g., 123456"
+            },
+            { "type": "button", "variant": "primary_large", "text": "Save bill (₹230)", "style_hints": "w-full bg-emerald-500 h-14 text-lg font-bold text-white rounded-lg", "action": "save bill and navigate to receipt view" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "receipt_view",
+      "name": "Invoice Receipt View (Success)",
+      "route": "/bill/{id}/receipt",
+      "layout": "Full screen white background, success banner top, centered receipt content, fixed bottom actions.",
+      "components": [
+        {
+          "type": "success_banner",
+          "style_hints": "bg-emerald-500 text-white p-3 flex justify-center items-center gap-2 font-medium",
+          "children": [
+            { "icon": "check-circle" },
+            { "text": "Bill Saved Successfully!" }
+          ]
+        },
+        {
+          "type": "receipt_container",
+          "style_hints": "m-6 p-6 bg-white border-2 border-dashed border-gray-300 rounded-lg text-center relative",
+          "children": [
+             { "type": "shop_name", "text": "{shop_name}", "style_hints": "text-2xl font-bold mb-2" },
+             { "type": "date_time", "text": "{date} at {time}", "style_hints": "text-gray-500 text-sm mb-6" },
+             { "type": "divider_dashed", "style_hints": "border-t-2 border-dashed border-gray-200 my-4" },
+             { "type": "item_list", "style_hints": "text-left flex flex-col gap-2", "children": [
+                 { "text": "Haircut x 1", "price": "₹150", "style_hints": "flex justify-between" },
+                 { "text": "Beard x 1", "price": "₹80", "style_hints": "flex justify-between" }
+             ]},
+             { "type": "divider_dashed", "style_hints": "border-t-2 border-dashed border-gray-200 my-4" },
+             { "type": "total", "label": "Total:", "value": "₹ 230", "style_hints": "flex justify-between text-2xl font-bold mb-2" },
+             { "type": "payment_method", "text": "Paid via: {payment_method} (CASH)", "style_hints": "text-gray-600" }
+          ]
+        },
+        {
+          "type": "fixed_bottom_actions",
+          "style_hints": "fixed bottom-0 w-full p-4 bg-white flex flex-col gap-4",
+          "children": [
+            { "type": "button", "variant": "whatsapp", "text": "Share Receipt on WhatsApp", "icon": "whatsapp", "style_hints": "w-full bg-emerald-500 text-white h-12 rounded-lg font-semibold flex justify-center items-center gap-2", "action": "open whatsapp deep link" },
+            { "type": "button", "variant": "text_only", "text": "Create another bill", "style_hints": "w-full text-emerald-600 font-medium py-2", "action": "navigate to /bill/new" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reports",
+      "name": "Reports (Daily Closeout)",
+      "route": "/reports",
+      "layout": "Header, date range filter, totals cards, top services list.",
+      "components": [
+        { "type": "app_header", "title": "Reports", "show_back_btn": true },
+        {
+          "type": "filters",
+          "style_hints": "p-4",
+          "children": [
+            { "type": "date_range_picker", "label": "Date range", "value": "Today" },
+            { "type": "segmented_control", "options": ["Today", "7 days", "30 days"], "active": "Today" }
+          ]
+        },
+        {
+          "type": "cards_grid",
+          "style_hints": "grid grid-cols-2 gap-3 px-4",
+          "children": [
+            { "type": "stat_card", "title": "Total", "value": "₹ {total}", "accent": "emerald" },
+            { "type": "stat_card", "title": "Bills", "value": "{count}", "accent": "amber" },
+            { "type": "stat_card", "title": "Cash", "value": "₹ {cash}", "accent": "gray" },
+            { "type": "stat_card", "title": "UPI", "value": "₹ {upi}", "accent": "gray" }
+          ]
+        },
+        {
+          "type": "section",
+          "style_hints": "p-4 pb-24",
+          "children": [
+            { "type": "section_title", "text": "Top services", "style_hints": "font-semibold text-gray-700 mb-3" },
+            { "type": "list_item", "title": "Haircut", "meta": "₹ 1,200", "subtitle": "8 bills" },
+            { "type": "list_item", "title": "Beard", "meta": "₹ 640", "subtitle": "8 bills" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "name": "Settings",
+      "route": "/settings",
+      "layout": "Header + profile card + logout.",
+      "components": [
+        { "type": "app_header", "title": "Settings", "show_back_btn": true },
+        {
+          "type": "card",
+          "style_hints": "m-4 bg-white rounded-lg border border-gray-200 p-4",
+          "children": [
+            { "type": "row", "label": "Shop name", "value": "{shop_name}", "action": "edit" },
+            { "type": "row", "label": "PAN", "value": "{pan}", "helper_text": "PAN cannot be changed.", "action": "disabled" },
+            { "type": "row", "label": "Email", "value": "{email}", "action": "view" }
+          ]
+        },
+        {
+          "type": "card",
+          "style_hints": "m-4 bg-white rounded-lg border border-gray-200 p-4",
+          "children": [
+            { "type": "button", "variant": "outline", "text": "Logout", "style_hints": "w-full border border-gray-200 h-12", "action": "POST /api/auth/logout then navigate to /login" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "states",
+      "name": "Global States (Empty + Error)",
+      "route": "(shared)",
+      "layout": "Reusable patterns.",
+      "components": [
+        {
+          "type": "empty_state",
+          "title": "No customers yet",
+          "description": "Add your first customer to track visits.",
+          "primary_cta": "Add customer",
+          "secondary_cta": "Create bill",
+          "icon": "users"
+        },
+        {
+          "type": "empty_state",
+          "title": "No services found",
+          "description": "Add a service with your price.",
+          "primary_cta": "Add service",
+          "icon": "scissors"
+        },
+        {
+          "type": "validation_error_example",
+          "title": "Invalid PAN",
+          "description": "Enter PAN in format like ABCDE1234F.",
+          "style_hints": "text-rose-600"
+        },
+        {
+          "type": "toast_error",
+          "text": "Password must be at least 8 characters.",
+          "style_hints": "bg-rose-50 border border-rose-200 text-rose-700"
+        }
+      ]
+    }
+  ]
+}
