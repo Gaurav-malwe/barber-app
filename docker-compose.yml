@@ -10,6 +10,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barber -d barber_app"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
 
   api:
     build:
@@ -26,9 +32,11 @@ services:
       CORS_ORIGINS: "http://localhost:3000"
       DATABASE_URL: "postgresql+psycopg://barber:barber@db:5432/barber_app"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
+    restart: unless-stopped
 
   web:
     build:
@@ -40,6 +48,7 @@ services:
       - api
     ports:
       - "3000:3000"
+    restart: unless-stopped
 
 volumes:
   postgres_data:
