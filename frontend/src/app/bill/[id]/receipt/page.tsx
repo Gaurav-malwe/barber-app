@@ -44,6 +44,8 @@ export default function ReceiptPage() {
   }, [id]);
 
   const totalPaise = invoice?.total_paise ?? 0;
+  const subtotalPaise = invoice?.subtotal_paise ?? 0;
+  const discountPaise = invoice?.discount_paise ?? 0;
 
   const whatsappText = useMemo(() => {
     if (!invoice) return "";
@@ -57,10 +59,14 @@ export default function ReceiptPage() {
         (it) => `- ${it.description} x${it.qty}: ${formatRupeesFromPaise(it.total_paise)}`
       ),
       "",
+      `Subtotal: ${formatRupeesFromPaise(subtotalPaise)}`,
+      `Discount: -${formatRupeesFromPaise(discountPaise)}`,
+      `Total: ${formatRupeesFromPaise(totalPaise)}`,
+      "",
       `Paid via: ${(invoice.payments?.[0]?.method ?? "").toUpperCase()}`,
     ];
     return lines.join("\n");
-  }, [invoice, me?.shop_name, totalPaise]);
+  }, [invoice, me?.shop_name, totalPaise, subtotalPaise, discountPaise]);
 
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
 
@@ -120,6 +126,20 @@ export default function ReceiptPage() {
               <div className="flex justify-between text-lg font-bold">
                 <div>Total</div>
                 <div>{formatRupeesFromPaise(totalPaise)}</div>
+              </div>
+              <div className="mt-2 space-y-1 text-sm">
+                <div className="flex justify-between text-zinc-800">
+                  <div>Subtotal</div>
+                  <div className="font-semibold text-zinc-900">
+                    {formatRupeesFromPaise(subtotalPaise)}
+                  </div>
+                </div>
+                <div className="flex justify-between text-zinc-800">
+                  <div>Discount</div>
+                  <div className="font-semibold text-zinc-900">
+                    -{formatRupeesFromPaise(discountPaise)}
+                  </div>
+                </div>
               </div>
               <div className="mt-1 text-sm text-zinc-700">
                 Paid via: {(invoice.payments?.[0]?.method ?? "").toUpperCase()}

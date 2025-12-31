@@ -52,6 +52,14 @@ export default function DashboardPage() {
     () => todayInvoices.reduce((sum, inv) => sum + inv.total_paise, 0),
     [todayInvoices]
   );
+  const todaySubtotalPaise = useMemo(
+    () => todayInvoices.reduce((sum, inv) => sum + inv.subtotal_paise, 0),
+    [todayInvoices]
+  );
+  const todayDiscountPaise = useMemo(
+    () => todayInvoices.reduce((sum, inv) => sum + inv.discount_paise, 0),
+    [todayInvoices]
+  );
   const cashPaise = useMemo(
     () => todayInvoices.filter((inv) => inv.payment_method === "CASH").reduce((s, inv) => s + inv.total_paise, 0),
     [todayInvoices]
@@ -83,9 +91,12 @@ export default function DashboardPage() {
       <AuthGate loading={meLoading} error={meError} me={me}>
         <div className="mx-auto max-w-2xl p-4">
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center shadow-sm">
-            <div className="text-sm text-zinc-700">Today’s Sales</div>
+            <div className="text-sm text-zinc-700">Today’s Sales (Net)</div>
             <div className="mt-2 text-4xl font-bold text-zinc-900">
               {formatRupeesFromPaise(todayTotalPaise)}
+            </div>
+            <div className="mt-1 text-xs text-zinc-700">
+              Gross {formatRupeesFromPaise(todaySubtotalPaise)} • Discount -{formatRupeesFromPaise(todayDiscountPaise)}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 border-t border-zinc-100 pt-4">
               <div className="rounded-lg bg-zinc-50 p-3">

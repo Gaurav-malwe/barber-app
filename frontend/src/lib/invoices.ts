@@ -33,6 +33,8 @@ export type InvoiceSummary = {
   id: string;
   issued_at: string;
   customer_name: string | null;
+  subtotal_paise: number;
+  discount_paise: number;
   total_paise: number;
   payment_method: PaymentMethod;
 };

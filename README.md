@@ -2,6 +2,10 @@
 
 Next.js frontend + FastAPI backend + Postgres.
 
+## Product docs
+
+- [docs/reports-and-discounts-prd.md](docs/reports-and-discounts-prd.md)
+
 ## Local development
 
 ### Option A: Run everything via Docker

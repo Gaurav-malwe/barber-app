@@ -53,6 +53,8 @@ def list_invoices(customer_id: uuid.UUID | None = None, db: Session = Depends(ge
                 id=inv.id,
                 issued_at=inv.issued_at,
                 customer_name=customer_name,
+                subtotal_paise=inv.subtotal_paise,
+                discount_paise=inv.discount_paise,
                 total_paise=inv.total_paise,
                 payment_method=method,  # type: ignore[arg-type]
             )

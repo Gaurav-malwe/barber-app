@@ -63,6 +63,7 @@ function NewBillPageInner() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [upiRef, setUpiRef] = useState("");
   const [saving, setSaving] = useState(false);
+  const [discountRupees, setDiscountRupees] = useState("");
 
   useEffect(() => {
     if (!me) return;
@@ -140,9 +141,21 @@ function NewBillPageInner() {
     });
   }
 
-  const totalPaise = useMemo(
+  const subtotalPaise = useMemo(
     () => items.reduce((sum, it) => sum + it.price_paise * it.qty, 0),
     [items]
+  );
+
+  const discountPaise = useMemo(() => {
+    const raw = Number.parseFloat(discountRupees || "0");
+    if (!Number.isFinite(raw) || raw <= 0) return 0;
+    const paise = Math.round(raw * 100);
+    return Math.min(Math.max(0, paise), subtotalPaise);
+  }, [discountRupees, subtotalPaise]);
+
+  const netTotalPaise = useMemo(
+    () => Math.max(0, subtotalPaise - discountPaise),
+    [subtotalPaise, discountPaise]
   );
 
   async function onSave() {
@@ -159,7 +172,7 @@ function NewBillPageInner() {
         body: JSON.stringify({
           customer_id: selectedCustomer?.id ?? null,
           items: items.map((it) => ({ service_id: it.service_id, qty: it.qty })),
-          discount_paise: 0,
+          discount_paise: discountPaise,
           payment_method: paymentMethod,
           upi_ref: upiRef.trim() || null,
         }),
@@ -271,9 +284,41 @@ function NewBillPageInner() {
                   </div>
                 ))}
 
-                <div className="flex items-center justify-between pt-2 text-lg font-bold">
-                  <div>Total</div>
-                  <div>{formatRupeesFromPaise(totalPaise)}</div>
+                <div className="pt-2">
+                  <label className="block text-sm font-semibold text-zinc-900">
+                    Discount (₹)
+                  </label>
+                  <input
+                    className="mt-2 w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="0"
+                    inputMode="decimal"
+                    value={discountRupees}
+                    onChange={(e) => setDiscountRupees(e.target.value)}
+                  />
+                  {discountPaise > 0 && discountPaise === subtotalPaise ? (
+                    <div className="mt-1 text-xs text-zinc-700">
+                      Discount is capped at subtotal.
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1 pt-2">
+                  <div className="flex items-center justify-between text-sm text-zinc-800">
+                    <div>Subtotal</div>
+                    <div className="font-semibold text-zinc-900">
+                      {formatRupeesFromPaise(subtotalPaise)}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-zinc-800">
+                    <div>Discount</div>
+                    <div className="font-semibold text-zinc-900">
+                      -{formatRupeesFromPaise(discountPaise)}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 text-lg font-bold">
+                    <div>Total</div>
+                    <div>{formatRupeesFromPaise(netTotalPaise)}</div>
+                  </div>
                 </div>
               </div>
             )}
@@ -322,7 +367,7 @@ function NewBillPageInner() {
               disabled={saving}
               className="w-full rounded-lg bg-emerald-500 px-4 py-4 text-base font-bold text-white disabled:opacity-60"
             >
-              {saving ? "Saving..." : `Save bill (${formatRupeesFromPaise(totalPaise)})`}
+              {saving ? "Saving..." : `Save bill (${formatRupeesFromPaise(netTotalPaise)})`}
             </button>
           </div>
         </div>

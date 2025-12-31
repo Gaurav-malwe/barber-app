@@ -55,5 +55,7 @@ class InvoiceSummaryResponse(BaseModel):
     id: uuid.UUID
     issued_at: datetime
     customer_name: str | None
+    subtotal_paise: int
+    discount_paise: int
     total_paise: int
     payment_method: Literal["CASH", "UPI"]

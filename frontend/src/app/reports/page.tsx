@@ -44,20 +44,22 @@ export default function ReportsPage() {
     };
   }, [me]);
 
-  const { totalPaise, billCount, cashPaise, upiPaise } = useMemo(() => {
+  const { grossPaise, discountPaise, netPaise, billCount, cashNetPaise, upiNetPaise } = useMemo(() => {
     const today = new Date();
     const todays = (invoices ?? []).filter((inv) =>
       isSameLocalDay(new Date(inv.issued_at), today)
     );
     const totals = todays.reduce(
       (acc, b) => {
-        acc.totalPaise += b.total_paise;
+        acc.grossPaise += b.subtotal_paise;
+        acc.discountPaise += b.discount_paise;
+        acc.netPaise += b.total_paise;
         acc.billCount += 1;
-        if (b.payment_method === "CASH") acc.cashPaise += b.total_paise;
-        if (b.payment_method === "UPI") acc.upiPaise += b.total_paise;
+        if (b.payment_method === "CASH") acc.cashNetPaise += b.total_paise;
+        if (b.payment_method === "UPI") acc.upiNetPaise += b.total_paise;
         return acc;
       },
-      { totalPaise: 0, billCount: 0, cashPaise: 0, upiPaise: 0 }
+      { grossPaise: 0, discountPaise: 0, netPaise: 0, billCount: 0, cashNetPaise: 0, upiNetPaise: 0 }
     );
     return totals;
   }, [invoices]);
@@ -75,25 +77,40 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-700">Total (Today)</div>
+              <div className="text-sm text-zinc-700">Gross (Today)</div>
               <div className="mt-1 text-xl font-bold">
-                {formatRupeesFromPaise(totalPaise)}
+                {formatRupeesFromPaise(grossPaise)}
+              </div>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-white p-4">
+              <div className="text-sm text-zinc-700">Discount (Today)</div>
+              <div className="mt-1 text-xl font-bold">
+                -{formatRupeesFromPaise(discountPaise)}
+              </div>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-white p-4">
+              <div className="text-sm text-zinc-700">Net (Today)</div>
+              <div className="mt-1 text-xl font-bold">
+                {formatRupeesFromPaise(netPaise)}
               </div>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
               <div className="text-sm text-zinc-700">Bills</div>
               <div className="mt-1 text-xl font-bold">{billCount}</div>
             </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-700">Cash</div>
+              <div className="text-sm text-zinc-700">Cash (Net)</div>
               <div className="mt-1 text-xl font-bold">
-                {formatRupeesFromPaise(cashPaise)}
+                {formatRupeesFromPaise(cashNetPaise)}
               </div>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-700">UPI</div>
+              <div className="text-sm text-zinc-700">UPI (Net)</div>
               <div className="mt-1 text-xl font-bold">
-                {formatRupeesFromPaise(upiPaise)}
+                {formatRupeesFromPaise(upiNetPaise)}
               </div>
             </div>
           </div>

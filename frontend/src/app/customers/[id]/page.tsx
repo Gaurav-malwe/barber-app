@@ -60,7 +60,15 @@ export default function CustomerDetailPage() {
   }, [me, id]);
 
   const billCount = invoices?.length ?? 0;
-  const totalPaise = useMemo(() => (invoices ?? []).reduce((sum, inv) => sum + inv.total_paise, 0), [invoices]);
+  const grossPaise = useMemo(
+    () => (invoices ?? []).reduce((sum, inv) => sum + inv.subtotal_paise, 0),
+    [invoices]
+  );
+  const discountPaise = useMemo(
+    () => (invoices ?? []).reduce((sum, inv) => sum + inv.discount_paise, 0),
+    [invoices]
+  );
+  const netPaise = useMemo(() => (invoices ?? []).reduce((sum, inv) => sum + inv.total_paise, 0), [invoices]);
 
   async function saveCustomer() {
     setError(null);
@@ -168,7 +176,7 @@ export default function CustomerDetailPage() {
               <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4">
                 <div className="font-semibold">Bill history</div>
                 <div className="mt-1 text-sm text-zinc-700">
-                  {billCount} bill{billCount === 1 ? "" : "s"} • Total {formatRupeesFromPaise(totalPaise)}
+                  {billCount} bill{billCount === 1 ? "" : "s"} • Gross {formatRupeesFromPaise(grossPaise)} • Discount -{formatRupeesFromPaise(discountPaise)} • Net {formatRupeesFromPaise(netPaise)}
                 </div>
 
                 {!invoices ? (
