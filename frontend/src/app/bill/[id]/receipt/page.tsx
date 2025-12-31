@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
-import { loadDraftBill, getBillTotalPaise } from "@/lib/bills";
+import { apiFetch } from "@/lib/api";
+import { type InvoiceDetail } from "../../../../lib/invoices";
 import { formatRupeesFromPaise } from "@/lib/money";
 import { useMe } from "@/lib/useMe";
 
@@ -16,28 +17,50 @@ export default function ReceiptPage() {
 
   const { me, loading: meLoading, error: meError } = useMe();
 
-  const bill = useMemo(() => {
-    return loadDraftBill(id);
+  const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        const data = (await apiFetch(`/api/invoices/${id}`)) as InvoiceDetail;
+        if (cancelled) return;
+        setInvoice(data);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Failed to load invoice");
+        setInvoice(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  const totalPaise = bill ? getBillTotalPaise(bill) : 0;
+  const totalPaise = invoice?.total_paise ?? 0;
 
   const whatsappText = useMemo(() => {
-    if (!bill) return "";
+    if (!invoice) return "";
     const lines = [
-      `${bill.shop_name ?? "NaayiKhata"}`,
+      `${me?.shop_name ?? "NaayiKhata"}`,
       `Bill: ${formatRupeesFromPaise(totalPaise)}`,
-      bill.customer?.name ? `Customer: ${bill.customer.name}` : "Customer: Walk-in",
+      invoice.customer_name ? `Customer: ${invoice.customer_name}` : "Customer: Walk-in",
       "",
       "Items:",
-      ...bill.items.map(
-        (it) => `- ${it.name} x${it.qty}: ${formatRupeesFromPaise(it.price_paise * it.qty)}`
+      ...invoice.items.map(
+        (it) => `- ${it.description} x${it.qty}: ${formatRupeesFromPaise(it.total_paise)}`
       ),
       "",
-      `Paid via: ${bill.payment_method}`,
+      `Paid via: ${(invoice.payments?.[0]?.method ?? "").toUpperCase()}`,
     ];
     return lines.join("\n");
-  }, [bill, totalPaise]);
+  }, [invoice, me?.shop_name, totalPaise]);
 
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
 
@@ -47,15 +70,20 @@ export default function ReceiptPage() {
       <AuthGate loading={meLoading} error={meError} me={me}>
         <div className="mx-auto max-w-2xl p-4">
           <div className="rounded-lg bg-emerald-500 p-3 text-center text-sm font-medium text-white">
-            Bill saved (local draft)
+            Bill saved to database
           </div>
 
-          {!bill ? (
+          {loading ? (
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
+              Loading receipt...
+            </div>
+          ) : error ? (
+            <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+              {error}
+            </div>
+          ) : !invoice ? (
             <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-6">
-              <div className="text-base font-semibold">Receipt not found</div>
-              <div className="mt-1 text-sm text-zinc-600">
-                This receipt was saved in this browser session only.
-              </div>
+              <div className="text-base font-semibold">Invoice not found</div>
               <Link
                 href="/bill/new"
                 className="mt-4 inline-flex rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white"
@@ -66,22 +94,22 @@ export default function ReceiptPage() {
           ) : (
             <div className="mt-4 rounded-lg border-2 border-dashed border-zinc-300 bg-white p-6">
               <div className="text-center">
-                <div className="text-2xl font-bold">{bill.shop_name ?? me?.shop_name}</div>
+                <div className="text-2xl font-bold">{me?.shop_name ?? "NaayiKhata"}</div>
                 <div className="mt-1 text-sm text-zinc-600">
-                  {new Date(bill.created_at).toLocaleString("en-IN")}
+                  {new Date(invoice.issued_at).toLocaleString("en-IN")}
                 </div>
               </div>
 
               <div className="my-4 border-t border-dashed border-zinc-200" />
 
               <div className="space-y-2">
-                {bill.items.map((it) => (
-                  <div key={it.service_id} className="flex justify-between text-sm">
+                {invoice.items.map((it) => (
+                  <div key={it.id} className="flex justify-between text-sm">
                     <div className="text-zinc-800">
-                      {it.name} x {it.qty}
+                      {it.description} x {it.qty}
                     </div>
                     <div className="font-medium">
-                      {formatRupeesFromPaise(it.price_paise * it.qty)}
+                      {formatRupeesFromPaise(it.total_paise)}
                     </div>
                   </div>
                 ))}
@@ -94,7 +122,7 @@ export default function ReceiptPage() {
                 <div>{formatRupeesFromPaise(totalPaise)}</div>
               </div>
               <div className="mt-1 text-sm text-zinc-600">
-                Paid via: {bill.payment_method}
+                Paid via: {(invoice.payments?.[0]?.method ?? "").toUpperCase()}
               </div>
             </div>
           )}

@@ -34,6 +34,8 @@ def create_customer(payload: CustomerCreate, db: Session = Depends(get_db), user
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Customer phone already exists")
+        if payload.phone:
+            raise HTTPException(status_code=400, detail="Customer phone already exists")
+        raise HTTPException(status_code=400, detail="Failed to create customer")
     db.refresh(customer)
     return CustomerResponse(id=customer.id, name=customer.name, phone=customer.phone, notes=customer.notes)

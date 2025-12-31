@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
 import { BottomNav } from "@/components/BottomNav";
 import { AuthGate } from "@/components/AuthGate";
-import { listRecentBills, getBillTotalPaise } from "@/lib/bills";
+import { apiFetch } from "@/lib/api";
+import { type InvoiceSummary } from "@/lib/invoices";
 import { formatRupeesFromPaise } from "@/lib/money";
 import { useMe } from "@/lib/useMe";
 
@@ -19,16 +21,47 @@ function isSameLocalDay(a: Date, b: Date) {
 export default function DashboardPage() {
   const { me, loading: meLoading, error: meError } = useMe();
 
-  const bills = listRecentBills(10);
+  const [invoices, setInvoices] = useState<InvoiceSummary[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!me) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = (await apiFetch("/api/invoices")) as InvoiceSummary[];
+        if (cancelled) return;
+        setInvoices(data);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setInvoices([]);
+        setError(err instanceof Error ? err.message : "Failed to load invoices");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [me]);
+
   const today = new Date();
-  const todayBills = bills.filter((b) => isSameLocalDay(new Date(b.created_at), today));
-  const todayTotalPaise = todayBills.reduce((sum, b) => sum + getBillTotalPaise(b), 0);
-  const cashPaise = todayBills
-    .filter((b) => b.payment_method === "CASH")
-    .reduce((sum, b) => sum + getBillTotalPaise(b), 0);
-  const upiPaise = todayBills
-    .filter((b) => b.payment_method === "UPI")
-    .reduce((sum, b) => sum + getBillTotalPaise(b), 0);
+  const todayInvoices = useMemo(() => {
+    return (invoices ?? []).filter((inv) => isSameLocalDay(new Date(inv.issued_at), today));
+  }, [invoices, today]);
+  const todayTotalPaise = useMemo(
+    () => todayInvoices.reduce((sum, inv) => sum + inv.total_paise, 0),
+    [todayInvoices]
+  );
+  const cashPaise = useMemo(
+    () => todayInvoices.filter((inv) => inv.payment_method === "CASH").reduce((s, inv) => s + inv.total_paise, 0),
+    [todayInvoices]
+  );
+  const upiPaise = useMemo(
+    () => todayInvoices.filter((inv) => inv.payment_method === "UPI").reduce((s, inv) => s + inv.total_paise, 0),
+    [todayInvoices]
+  );
+
+  const recentInvoices = (invoices ?? []).slice(0, 10);
 
   return (
     <div className="min-h-screen bg-zinc-50 pb-20">
@@ -95,30 +128,36 @@ export default function DashboardPage() {
 
           <div className="mt-6">
             <div className="mb-3 font-semibold text-zinc-700">Recent bills</div>
-            {bills.length === 0 ? (
+            {error ? (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                {error}
+              </div>
+            ) : null}
+
+            {recentInvoices.length === 0 ? (
               <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
                 No bills yet.
               </div>
             ) : (
               <div className="divide-y divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200 bg-white">
-                {bills.map((b) => {
-                  const title = b.customer?.name ? b.customer.name : "Walk-in";
-                  const total = formatRupeesFromPaise(getBillTotalPaise(b));
+                {recentInvoices.map((inv) => {
+                  const title = inv.customer_name ? inv.customer_name : "Walk-in";
+                  const total = formatRupeesFromPaise(inv.total_paise);
                   return (
                     <Link
-                      key={b.id}
-                      href={`/bill/${b.id}/receipt`}
+                      key={inv.id}
+                      href={`/bill/${inv.id}/receipt`}
                       className="block px-4 py-4 hover:bg-zinc-50"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="font-semibold text-zinc-900">{title}</div>
                           <div className="text-sm text-zinc-600">
-                            {new Date(b.created_at).toLocaleTimeString("en-IN", {
+                            {new Date(inv.issued_at).toLocaleTimeString("en-IN", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
-                            {" "}• {b.payment_method}
+                            {" "}• {inv.payment_method}
                           </div>
                         </div>
                         <div className="font-semibold">{total}</div>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthGate } from "@/components/AuthGate";
-import { listRecentBills, getBillTotalPaise } from "@/lib/bills";
+import { apiFetch } from "@/lib/api";
+import { type InvoiceSummary } from "@/lib/invoices";
 import { formatRupeesFromPaise } from "@/lib/money";
 import { useMe } from "@/lib/useMe";
 
@@ -20,30 +21,58 @@ function isSameLocalDay(a: Date, b: Date) {
 export default function ReportsPage() {
   const { me, loading: meLoading, error: meError } = useMe();
 
+  const [invoices, setInvoices] = useState<InvoiceSummary[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!me) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = (await apiFetch("/api/invoices")) as InvoiceSummary[];
+        if (cancelled) return;
+        setInvoices(data);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setInvoices([]);
+        setError(err instanceof Error ? err.message : "Failed to load invoices");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [me]);
+
   const { totalPaise, billCount, cashPaise, upiPaise } = useMemo(() => {
     const today = new Date();
-    const bills = listRecentBills(50).filter((b) =>
-      isSameLocalDay(new Date(b.created_at), today)
+    const todays = (invoices ?? []).filter((inv) =>
+      isSameLocalDay(new Date(inv.issued_at), today)
     );
-    const totals = bills.reduce(
+    const totals = todays.reduce(
       (acc, b) => {
-        const t = getBillTotalPaise(b);
-        acc.totalPaise += t;
+        acc.totalPaise += b.total_paise;
         acc.billCount += 1;
-        if (b.payment_method === "CASH") acc.cashPaise += t;
-        if (b.payment_method === "UPI") acc.upiPaise += t;
+        if (b.payment_method === "CASH") acc.cashPaise += b.total_paise;
+        if (b.payment_method === "UPI") acc.upiPaise += b.total_paise;
         return acc;
       },
       { totalPaise: 0, billCount: 0, cashPaise: 0, upiPaise: 0 }
     );
     return totals;
-  }, []);
+  }, [invoices]);
 
   return (
     <div className="min-h-screen bg-zinc-50 pb-20">
       <AppHeader title="Reports" backHref="/dashboard" />
       <AuthGate loading={meLoading} error={meError} me={me}>
         <div className="mx-auto max-w-2xl p-4">
+          {error ? (
+            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
               <div className="text-sm text-zinc-600">Total (Today)</div>
@@ -69,13 +98,6 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4">
-            <div className="font-semibold">Notes</div>
-            <div className="mt-1 text-sm text-zinc-600">
-              These totals are currently based on locally saved draft bills.
-              When we add invoice APIs, this will become a real report.
-            </div>
-          </div>
         </div>
       </AuthGate>
 

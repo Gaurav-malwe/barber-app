@@ -8,12 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
 import { apiFetch } from "@/lib/api";
-import {
-  type DraftBill,
-  getBillTotalPaise,
-  saveDraftBill,
-  type PaymentMethod,
-} from "@/lib/bills";
+import { type PaymentMethod } from "../../../lib/invoices";
 import { formatRupeesFromPaise } from "@/lib/money";
 import { useMe } from "@/lib/useMe";
 
@@ -145,25 +140,10 @@ function NewBillPageInner() {
     });
   }
 
-  const draft: DraftBill = useMemo(() => {
-    return {
-      id: "(unsaved)",
-      created_at: new Date().toISOString(),
-      shop_name: me?.shop_name,
-      customer: selectedCustomer
-        ? {
-            id: selectedCustomer.id,
-            name: selectedCustomer.name,
-            phone: selectedCustomer.phone ?? undefined,
-          }
-        : undefined,
-      items,
-      payment_method: paymentMethod,
-      upi_ref: upiRef.trim() || undefined,
-    };
-  }, [items, me?.shop_name, paymentMethod, selectedCustomer, upiRef]);
-
-  const totalPaise = getBillTotalPaise(draft);
+  const totalPaise = useMemo(
+    () => items.reduce((sum, it) => sum + it.price_paise * it.qty, 0),
+    [items]
+  );
 
   async function onSave() {
     setError(null);
@@ -174,14 +154,18 @@ function NewBillPageInner() {
 
     setSaving(true);
     try {
-      const id = crypto.randomUUID();
-      const bill: DraftBill = {
-        ...draft,
-        id,
-        created_at: new Date().toISOString(),
-      };
-      saveDraftBill(bill);
-      router.push(`/bill/${id}/receipt`);
+      const invoice = (await apiFetch("/api/invoices/", {
+        method: "POST",
+        body: JSON.stringify({
+          customer_id: selectedCustomer?.id ?? null,
+          items: items.map((it) => ({ service_id: it.service_id, qty: it.qty })),
+          discount_paise: 0,
+          payment_method: paymentMethod,
+          upi_ref: upiRef.trim() || null,
+        }),
+      })) as { id: string };
+
+      router.push(`/bill/${invoice.id}/receipt`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save bill");
     } finally {
