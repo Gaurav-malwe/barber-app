@@ -25,6 +25,10 @@ export default function ServicesPage() {
   const [newPrice, setNewPrice] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPrice, setEditPrice] = useState<string>("");
+
   async function load() {
     setError(null);
     try {
@@ -87,6 +91,46 @@ export default function ServicesPage() {
     }
   }
 
+  function startEdit(service: Service) {
+    setEditingId(service.id);
+    setEditName(service.name);
+    setEditPrice(String(service.price_paise / 100));
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditName("");
+    setEditPrice("");
+  }
+
+  async function saveEdit(service: Service) {
+    setError(null);
+    try {
+      const name = editName.trim();
+      const rupees = Number(editPrice);
+      if (!name) throw new Error("Name is required");
+      if (!Number.isFinite(rupees) || rupees < 0) {
+        throw new Error("Price must be a valid number")
+      }
+
+      const updated = (await apiFetch(`/api/services/${service.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name,
+          price_paise: rupeesToPaise(rupees),
+        }),
+      })) as Service;
+
+      setServices((prev) => {
+        if (!prev) return prev;
+        return prev.map((s) => (s.id === updated.id ? updated : s));
+      });
+      cancelEdit();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update service");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 pb-24">
       <AppHeader title="Services" backHref="/dashboard" />
@@ -134,19 +178,65 @@ export default function ServicesPage() {
               Your services
             </div>
             {!services ? (
-              <div className="p-4 text-sm text-zinc-600">Loading...</div>
+              <div className="p-4 text-sm text-zinc-700">Loading...</div>
             ) : activeServices.length === 0 ? (
-              <div className="p-4 text-sm text-zinc-600">No services yet.</div>
+              <div className="p-4 text-sm text-zinc-700">No services yet.</div>
             ) : (
               <div className="divide-y divide-zinc-200">
                 {activeServices.map((s) => (
                   <div key={s.id} className="flex items-center gap-3 px-4 py-3">
                     <div className="flex-1">
-                      <div className="font-medium text-zinc-900">{s.name}</div>
-                      <div className="text-sm text-zinc-600">
-                        {formatRupeesFromPaise(s.price_paise)}
-                      </div>
+                      {editingId === s.id ? (
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          <input
+                            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:col-span-2"
+                            placeholder="Service name"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                          />
+                          <input
+                            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            placeholder="Price (₹)"
+                            inputMode="numeric"
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(e.target.value)}
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="font-medium text-zinc-900">{s.name}</div>
+                          <div className="text-sm text-zinc-700">
+                            {formatRupeesFromPaise(s.price_paise)}
+                          </div>
+                        </>
+                      )}
                     </div>
+                    {editingId === s.id ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => saveEdit(s)}
+                          className="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-800"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => startEdit(s)}
+                        className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-800"
+                      >
+                        Edit
+                      </button>
+                    )}
                     <label className="flex items-center gap-2 text-sm text-zinc-700">
                       <input
                         type="checkbox"

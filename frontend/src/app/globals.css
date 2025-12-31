@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  /* Keep these for future theming, but don't override Tailwind classes via body styles. */
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -19,10 +20,12 @@
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  body {
+    @apply bg-zinc-50 text-zinc-900 antialiased;
+    font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, Arial,
+      "Apple Color Emoji", "Segoe UI Emoji";
+  }
 }
 
 /* Make form controls readable even when the OS/browser switches to dark scheme */

@@ -86,13 +86,13 @@ export default function CustomersPage() {
           ) : null}
 
           {!customers ? (
-            <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
               Loading customers...
             </div>
           ) : filtered.length === 0 ? (
             <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-6">
               <div className="text-base font-semibold">No customers yet</div>
-              <div className="mt-1 text-sm text-zinc-600">
+              <div className="mt-1 text-sm text-zinc-700">
                 Add your first customer to track visits.
               </div>
               <Link
@@ -113,11 +113,11 @@ export default function CustomersPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="font-semibold text-zinc-900">{c.name}</div>
-                      <div className="text-sm text-zinc-600">
+                      <div className="text-sm text-zinc-700">
                         {c.phone ? c.phone : "No phone"}
                       </div>
                     </div>
-                    <div className="text-sm text-zinc-500">View</div>
+                    <div className="text-sm text-zinc-700">View</div>
                   </div>
                 </Link>
               ))}

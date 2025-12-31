@@ -39,7 +39,7 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-md p-6">
       <h1 className="text-2xl font-bold">Create your shop</h1>
-      <p className="mt-1 text-sm text-zinc-600">Takes less than 1 minute.</p>
+      <p className="mt-1 text-sm text-zinc-700">Takes less than 1 minute.</p>
       <form className="mt-4 space-y-3" onSubmit={onSubmit}>
         <input
           className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -79,7 +79,7 @@ export default function RegisterPage() {
           {loading ? "Creating..." : "Create"}
         </button>
 
-        <div className="text-center text-sm text-zinc-600">
+        <div className="text-center text-sm text-zinc-700">
           Already have an account?{" "}
           <a className="font-semibold text-emerald-600" href="/login">
             Login

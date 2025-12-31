@@ -18,7 +18,7 @@ export default function Home() {
           <div className="text-3xl font-bold tracking-tight text-zinc-900">
             Daily Bill Book + Customer Khata for Barbers.
           </div>
-          <p className="mt-3 text-sm text-zinc-600">
+          <p className="mt-3 text-sm text-zinc-700">
             Create bills in seconds, track customers, and close your day with clean totals.
           </p>
 
@@ -29,7 +29,7 @@ export default function Home() {
             >
               Create Free Account
             </Link>
-            <div className="grid grid-cols-3 gap-2 text-center text-xs text-zinc-600">
+            <div className="grid grid-cols-3 gap-2 text-center text-xs text-zinc-700">
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-3">
                 Secure
               </div>

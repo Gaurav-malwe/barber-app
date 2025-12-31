@@ -83,18 +83,18 @@ export default function DashboardPage() {
       <AuthGate loading={meLoading} error={meError} me={me}>
         <div className="mx-auto max-w-2xl p-4">
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center shadow-sm">
-            <div className="text-sm text-zinc-500">Today’s Sales</div>
+            <div className="text-sm text-zinc-700">Today’s Sales</div>
             <div className="mt-2 text-4xl font-bold text-zinc-900">
               {formatRupeesFromPaise(todayTotalPaise)}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 border-t border-zinc-100 pt-4">
               <div className="rounded-lg bg-zinc-50 p-3">
-                <div className="text-xs text-zinc-500">Cash</div>
-                <div className="font-semibold">{formatRupeesFromPaise(cashPaise)}</div>
+                <div className="text-xs text-zinc-700">Cash</div>
+                <div className="font-semibold text-zinc-900">{formatRupeesFromPaise(cashPaise)}</div>
               </div>
               <div className="rounded-lg bg-zinc-50 p-3">
-                <div className="text-xs text-zinc-500">UPI</div>
-                <div className="font-semibold">{formatRupeesFromPaise(upiPaise)}</div>
+                <div className="text-xs text-zinc-700">UPI</div>
+                <div className="font-semibold text-zinc-900">{formatRupeesFromPaise(upiPaise)}</div>
               </div>
             </div>
           </div>
@@ -114,14 +114,14 @@ export default function DashboardPage() {
                 className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white text-center shadow-sm"
               >
                 <div className="text-base font-bold">+ Customer</div>
-                <div className="text-xs text-zinc-600">Add</div>
+                <div className="text-xs text-zinc-700">Add</div>
               </Link>
               <Link
                 href="/services"
                 className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white text-center shadow-sm"
               >
                 <div className="text-base font-bold">Services</div>
-                <div className="text-xs text-zinc-600">Pricing</div>
+                <div className="text-xs text-zinc-700">Pricing</div>
               </Link>
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function DashboardPage() {
             ) : null}
 
             {recentInvoices.length === 0 ? (
-              <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
+              <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
                 No bills yet.
               </div>
             ) : (
@@ -152,7 +152,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="font-semibold text-zinc-900">{title}</div>
-                          <div className="text-sm text-zinc-600">
+                          <div className="text-sm text-zinc-700">
                             {new Date(inv.issued_at).toLocaleTimeString("en-IN", {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -160,7 +160,7 @@ export default function DashboardPage() {
                             {" "}• {inv.payment_method}
                           </div>
                         </div>
-                        <div className="font-semibold">{total}</div>
+                        <div className="font-semibold text-zinc-900">{total}</div>
                       </div>
                     </Link>
                   );

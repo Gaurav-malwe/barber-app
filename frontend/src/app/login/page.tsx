@@ -59,7 +59,7 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        <div className="text-center text-sm text-zinc-600">
+        <div className="text-center text-sm text-zinc-700">
           New here?{" "}
           <a className="font-semibold text-emerald-600" href="/register">
             Create account

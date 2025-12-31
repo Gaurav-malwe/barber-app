@@ -18,15 +18,15 @@ router = APIRouter()
 
 
 @router.get("/", response_model=list[InvoiceSummaryResponse])
-def list_invoices(db: Session = Depends(get_db), user=Depends(get_current_user)):
-    rows = (
+def list_invoices(customer_id: uuid.UUID | None = None, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    q = (
         db.query(Invoice, Customer.name)
         .outerjoin(Customer, Customer.id == Invoice.customer_id)
         .filter(Invoice.shop_id == user.shop.id)
-        .order_by(Invoice.issued_at.desc())
-        .limit(200)
-        .all()
     )
+    if customer_id is not None:
+        q = q.filter(Invoice.customer_id == customer_id)
+    rows = q.order_by(Invoice.issued_at.desc()).limit(200).all()
 
     invoices = [inv for inv, _ in rows]
     invoice_ids = [inv.id for inv in invoices]

@@ -6,7 +6,7 @@ type Tab = "Home" | "Customers" | "Reports";
 
 export function BottomNav(props: { active: Tab }) {
   const activeClass = "text-emerald-600";
-  const inactiveClass = "text-zinc-500";
+  const inactiveClass = "text-zinc-700";
 
   return (
     <nav className="fixed inset-x-0 bottom-0 border-t border-zinc-200 bg-white">

@@ -33,9 +33,9 @@ export default function SettingsPage() {
       <AuthGate loading={meLoading} error={meError} me={me}>
         <div className="mx-auto max-w-2xl p-4">
           <div className="rounded-lg border border-zinc-200 bg-white p-4">
-            <div className="text-sm text-zinc-600">Shop</div>
+            <div className="text-sm text-zinc-700">Shop</div>
             <div className="mt-1 font-semibold text-zinc-900">{me?.shop_name}</div>
-            <div className="mt-4 text-sm text-zinc-600">Email</div>
+            <div className="mt-4 text-sm text-zinc-700">Email</div>
             <div className="mt-1 font-semibold text-zinc-900">{me?.email}</div>
           </div>
 

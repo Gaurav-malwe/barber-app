@@ -74,7 +74,7 @@ export default function ReceiptPage() {
           </div>
 
           {loading ? (
-            <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-6 text-sm text-zinc-700">
               Loading receipt...
             </div>
           ) : error ? (
@@ -95,7 +95,7 @@ export default function ReceiptPage() {
             <div className="mt-4 rounded-lg border-2 border-dashed border-zinc-300 bg-white p-6">
               <div className="text-center">
                 <div className="text-2xl font-bold">{me?.shop_name ?? "NaayiKhata"}</div>
-                <div className="mt-1 text-sm text-zinc-600">
+                <div className="mt-1 text-sm text-zinc-700">
                   {new Date(invoice.issued_at).toLocaleString("en-IN")}
                 </div>
               </div>
@@ -121,7 +121,7 @@ export default function ReceiptPage() {
                 <div>Total</div>
                 <div>{formatRupeesFromPaise(totalPaise)}</div>
               </div>
-              <div className="mt-1 text-sm text-zinc-600">
+              <div className="mt-1 text-sm text-zinc-700">
                 Paid via: {(invoice.payments?.[0]?.method ?? "").toUpperCase()}
               </div>
             </div>

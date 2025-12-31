@@ -31,7 +31,7 @@ export default function NewBillPage() {
       fallback={
         <div className="min-h-screen bg-zinc-50">
           <div className="mx-auto max-w-2xl p-6">
-            <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
+            <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
               Loading...
             </div>
           </div>
@@ -188,9 +188,9 @@ function NewBillPageInner() {
             <div className="font-semibold">Customer (optional)</div>
             <div className="mt-2">
               {!customers ? (
-                <div className="text-sm text-zinc-600">Loading customers...</div>
+                <div className="text-sm text-zinc-700">Loading customers...</div>
               ) : customers.length === 0 ? (
-                <div className="text-sm text-zinc-600">
+                <div className="text-sm text-zinc-700">
                   No customers yet. <Link className="underline" href="/customers/new">Add one</Link>.
                 </div>
               ) : (
@@ -213,9 +213,9 @@ function NewBillPageInner() {
           <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4">
             <div className="font-semibold">Tap to add items</div>
             {!services ? (
-              <div className="mt-2 text-sm text-zinc-600">Loading services...</div>
+              <div className="mt-2 text-sm text-zinc-700">Loading services...</div>
             ) : services.length === 0 ? (
-              <div className="mt-2 text-sm text-zinc-600">
+              <div className="mt-2 text-sm text-zinc-700">
                 No active services. <Link className="underline" href="/services">Add services</Link>.
               </div>
             ) : (
@@ -237,7 +237,7 @@ function NewBillPageInner() {
           <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4">
             <div className="font-semibold">Bill summary</div>
             {items.length === 0 ? (
-              <div className="mt-2 text-sm text-zinc-600">No items added.</div>
+              <div className="mt-2 text-sm text-zinc-700">No items added.</div>
             ) : (
               <div className="mt-3 space-y-2">
                 {items.map((it) => (
@@ -247,7 +247,7 @@ function NewBillPageInner() {
                   >
                     <div className="flex-1">
                       <div className="font-medium text-zinc-900">{it.name}</div>
-                      <div className="text-sm text-zinc-600">
+                      <div className="text-sm text-zinc-700">
                         {formatRupeesFromPaise(it.price_paise)}
                       </div>
                     </div>

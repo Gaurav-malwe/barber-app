@@ -75,23 +75,23 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-600">Total (Today)</div>
+              <div className="text-sm text-zinc-700">Total (Today)</div>
               <div className="mt-1 text-xl font-bold">
                 {formatRupeesFromPaise(totalPaise)}
               </div>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-600">Bills</div>
+              <div className="text-sm text-zinc-700">Bills</div>
               <div className="mt-1 text-xl font-bold">{billCount}</div>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-600">Cash</div>
+              <div className="text-sm text-zinc-700">Cash</div>
               <div className="mt-1 text-xl font-bold">
                 {formatRupeesFromPaise(cashPaise)}
               </div>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-600">UPI</div>
+              <div className="text-sm text-zinc-700">UPI</div>
               <div className="mt-1 text-xl font-bold">
                 {formatRupeesFromPaise(upiPaise)}
               </div>

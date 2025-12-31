@@ -13,7 +13,7 @@ export function AuthGate(props: {
   if (props.loading) {
     return (
       <div className="mx-auto max-w-2xl p-6">
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-600">
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
           Loading...
         </div>
       </div>
