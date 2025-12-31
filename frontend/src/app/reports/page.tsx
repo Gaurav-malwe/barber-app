@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { AppHeader } from "@/components/AppHeader";
@@ -18,38 +19,132 @@ function isSameLocalDay(a: Date, b: Date) {
   );
 }
 
+type RangePreset = "TODAY" | "7D" | "30D";
+
+type CustomerInsights = {
+  start: string;
+  end: string;
+  dormant_days: number;
+  repeat_customers: Array<{
+    customer_id: string;
+    customer_name: string;
+    bill_count: number;
+    gross_paise: number;
+    discount_paise: number;
+    net_paise: number;
+    last_invoice_at: string | null;
+  }>;
+  top_customers: Array<{
+    customer_id: string;
+    customer_name: string;
+    bill_count: number;
+    gross_paise: number;
+    discount_paise: number;
+    net_paise: number;
+    last_invoice_at: string | null;
+  }>;
+  dormant_customers: Array<{
+    customer_id: string;
+    customer_name: string;
+    last_invoice_at: string | null;
+    bill_count_all_time: number;
+  }>;
+};
+
+type ServicePerformance = {
+  start: string;
+  end: string;
+  limit: number;
+  top_by_revenue: Array<{
+    service_id: string;
+    service_name: string;
+    qty: number;
+    revenue_paise: number;
+    invoice_count: number;
+  }>;
+  top_by_quantity: Array<{
+    service_id: string;
+    service_name: string;
+    qty: number;
+    revenue_paise: number;
+    invoice_count: number;
+  }>;
+};
+
+function startOfLocalDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function addDaysLocal(d: Date, days: number) {
+  const next = new Date(d);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
 export default function ReportsPage() {
   const { me, loading: meLoading, error: meError } = useMe();
 
   const [invoices, setInvoices] = useState<InvoiceSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [preset, setPreset] = useState<RangePreset>("TODAY");
+  const [customerInsights, setCustomerInsights] = useState<CustomerInsights | null>(null);
+  const [dormantDays, setDormantDays] = useState<30 | 60 | 90>(30);
+  const [servicePerformance, setServicePerformance] = useState<ServicePerformance | null>(null);
 
   useEffect(() => {
     if (!me) return;
     let cancelled = false;
     (async () => {
       try {
-        const data = (await apiFetch("/api/invoices")) as InvoiceSummary[];
+        const now = new Date();
+        const start = startOfLocalDay(now);
+        const end = addDaysLocal(start, 1);
+        const rangeStart = preset === "TODAY" ? start : addDaysLocal(end, preset === "7D" ? -7 : -30);
+
+        const qs = new URLSearchParams({
+          start: rangeStart.toISOString(),
+          end: end.toISOString(),
+        });
+
+        const data = (await apiFetch(`/api/invoices?${qs.toString()}`)) as InvoiceSummary[];
         if (cancelled) return;
         setInvoices(data);
+
+        const insightsQs = new URLSearchParams({
+          start: rangeStart.toISOString(),
+          end: end.toISOString(),
+          dormant_days: String(dormantDays),
+          limit: "10",
+          include_never: "true",
+        });
+        const insights = (await apiFetch(`/api/reports/customers?${insightsQs.toString()}`)) as CustomerInsights;
+        if (cancelled) return;
+        setCustomerInsights(insights);
+
+        const servicesQs = new URLSearchParams({
+          start: rangeStart.toISOString(),
+          end: end.toISOString(),
+          limit: "10",
+        });
+        const services = (await apiFetch(`/api/reports/services?${servicesQs.toString()}`)) as ServicePerformance;
+        if (cancelled) return;
+        setServicePerformance(services);
         setError(null);
       } catch (err) {
         if (cancelled) return;
         setInvoices([]);
+        setCustomerInsights(null);
+        setServicePerformance(null);
         setError(err instanceof Error ? err.message : "Failed to load invoices");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [me]);
+  }, [me, preset, dormantDays]);
 
   const { grossPaise, discountPaise, netPaise, billCount, cashNetPaise, upiNetPaise } = useMemo(() => {
-    const today = new Date();
-    const todays = (invoices ?? []).filter((inv) =>
-      isSameLocalDay(new Date(inv.issued_at), today)
-    );
-    const totals = todays.reduce(
+    const totals = (invoices ?? []).reduce(
       (acc, b) => {
         acc.grossPaise += b.subtotal_paise;
         acc.discountPaise += b.discount_paise;
@@ -64,6 +159,32 @@ export default function ReportsPage() {
     return totals;
   }, [invoices]);
 
+  const perDay = useMemo(() => {
+    const buckets = new Map<
+      string,
+      { day: string; grossPaise: number; discountPaise: number; netPaise: number; bills: number }
+    >();
+
+    for (const inv of invoices ?? []) {
+      const d = new Date(inv.issued_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const existing = buckets.get(key) ?? {
+        day: key,
+        grossPaise: 0,
+        discountPaise: 0,
+        netPaise: 0,
+        bills: 0,
+      };
+      existing.grossPaise += inv.subtotal_paise;
+      existing.discountPaise += inv.discount_paise;
+      existing.netPaise += inv.total_paise;
+      existing.bills += 1;
+      buckets.set(key, existing);
+    }
+
+    return Array.from(buckets.values()).sort((a, b) => (a.day < b.day ? 1 : -1));
+  }, [invoices]);
+
   return (
     <div className="min-h-screen bg-zinc-50 pb-20">
       <AppHeader title="Reports" backHref="/dashboard" />
@@ -75,21 +196,51 @@ export default function ReportsPage() {
             </div>
           ) : null}
 
+          <div className="mb-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPreset("TODAY")}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                preset === "TODAY" ? "bg-emerald-500 text-white" : "border border-zinc-200 bg-white text-zinc-800"
+              }`}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreset("7D")}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                preset === "7D" ? "bg-emerald-500 text-white" : "border border-zinc-200 bg-white text-zinc-800"
+              }`}
+            >
+              7D
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreset("30D")}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                preset === "30D" ? "bg-emerald-500 text-white" : "border border-zinc-200 bg-white text-zinc-800"
+              }`}
+            >
+              30D
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-700">Gross (Today)</div>
+              <div className="text-sm text-zinc-700">Gross</div>
               <div className="mt-1 text-xl font-bold">
                 {formatRupeesFromPaise(grossPaise)}
               </div>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-700">Discount (Today)</div>
+              <div className="text-sm text-zinc-700">Discount</div>
               <div className="mt-1 text-xl font-bold">
                 -{formatRupeesFromPaise(discountPaise)}
               </div>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <div className="text-sm text-zinc-700">Net (Today)</div>
+              <div className="text-sm text-zinc-700">Net</div>
               <div className="mt-1 text-xl font-bold">
                 {formatRupeesFromPaise(netPaise)}
               </div>
@@ -113,6 +264,248 @@ export default function ReportsPage() {
                 {formatRupeesFromPaise(upiNetPaise)}
               </div>
             </div>
+          </div>
+
+          <div className="mt-6 rounded-lg border border-zinc-200 bg-white">
+            <div className="border-b border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
+              Per-day breakdown
+            </div>
+            {invoices === null ? (
+              <div className="p-4 text-sm text-zinc-700">Loading...</div>
+            ) : perDay.length === 0 ? (
+              <div className="p-4 text-sm text-zinc-700">No data for this range.</div>
+            ) : (
+              <div className="divide-y divide-zinc-200">
+                {perDay.map((d) => (
+                  <div key={d.day} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold text-zinc-900">{d.day}</div>
+                      <div className="text-sm text-zinc-700">{d.bills} bill{d.bills === 1 ? "" : "s"}</div>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                      <div className="rounded-lg bg-zinc-50 p-2">
+                        <div className="text-xs text-zinc-700">Gross</div>
+                        <div className="font-semibold text-zinc-900">{formatRupeesFromPaise(d.grossPaise)}</div>
+                      </div>
+                      <div className="rounded-lg bg-zinc-50 p-2">
+                        <div className="text-xs text-zinc-700">Discount</div>
+                        <div className="font-semibold text-zinc-900">-{formatRupeesFromPaise(d.discountPaise)}</div>
+                      </div>
+                      <div className="rounded-lg bg-zinc-50 p-2">
+                        <div className="text-xs text-zinc-700">Net</div>
+                        <div className="font-semibold text-zinc-900">{formatRupeesFromPaise(d.netPaise)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 rounded-lg border border-zinc-200 bg-white">
+            <div className="border-b border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
+              Customer insights
+            </div>
+            {!customerInsights ? (
+              <div className="p-4 text-sm text-zinc-700">Loading...</div>
+            ) : (
+              <div className="divide-y divide-zinc-200">
+                <div className="p-4">
+                  <div className="font-semibold text-zinc-900">Repeat customers (≥2 bills)</div>
+                  {customerInsights.repeat_customers.length === 0 ? (
+                    <div className="mt-2 text-sm text-zinc-700">No repeat customers in this range.</div>
+                  ) : (
+                    <div className="mt-3 divide-y divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200">
+                      {customerInsights.repeat_customers.map((c) => (
+                        <Link
+                          key={c.customer_id}
+                          href={`/customers/${c.customer_id}`}
+                          className="block bg-white px-4 py-3 hover:bg-zinc-50"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="font-semibold text-zinc-900">{c.customer_name}</div>
+                              <div className="text-sm text-zinc-700">{c.bill_count} bills</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-zinc-900">
+                                {formatRupeesFromPaise(c.net_paise)}
+                              </div>
+                              <div className="text-xs text-zinc-700">
+                                Gross {formatRupeesFromPaise(c.gross_paise)} • Disc -{formatRupeesFromPaise(c.discount_paise)}
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  <div className="font-semibold text-zinc-900">Top customers (by net)</div>
+                  {customerInsights.top_customers.length === 0 ? (
+                    <div className="mt-2 text-sm text-zinc-700">No customer bills in this range.</div>
+                  ) : (
+                    <div className="mt-3 divide-y divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200">
+                      {customerInsights.top_customers.map((c, idx) => (
+                        <Link
+                          key={c.customer_id}
+                          href={`/customers/${c.customer_id}`}
+                          className="block bg-white px-4 py-3 hover:bg-zinc-50"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="font-semibold text-zinc-900">
+                                {idx + 1}. {c.customer_name}
+                              </div>
+                              <div className="text-sm text-zinc-700">{c.bill_count} bills</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-zinc-900">
+                                {formatRupeesFromPaise(c.net_paise)}
+                              </div>
+                              <div className="text-xs text-zinc-700">
+                                Gross {formatRupeesFromPaise(c.gross_paise)} • Disc -{formatRupeesFromPaise(c.discount_paise)}
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-semibold text-zinc-900">Dormant window</div>
+                    <div className="flex gap-2">
+                      {[30, 60, 90].map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setDormantDays(d as 30 | 60 | 90)}
+                          className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                            dormantDays === d
+                              ? "bg-emerald-500 text-white"
+                              : "border border-zinc-200 bg-white text-zinc-800"
+                          }`}
+                        >
+                          {d}D
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-1 text-sm text-zinc-700">
+                    Shows customers with no bills in the last {dormantDays} days (or never billed).
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="font-semibold text-zinc-900">Dormant customers ({customerInsights.dormant_days}+ days)</div>
+                  {customerInsights.dormant_customers.length === 0 ? (
+                    <div className="mt-2 text-sm text-zinc-700">No dormant customers.</div>
+                  ) : (
+                    <div className="mt-3 divide-y divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200">
+                      {customerInsights.dormant_customers.map((c) => (
+                        <Link
+                          key={c.customer_id}
+                          href={`/customers/${c.customer_id}`}
+                          className="block bg-white px-4 py-3 hover:bg-zinc-50"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="font-semibold text-zinc-900">{c.customer_name}</div>
+                              <div className="text-sm text-zinc-700">
+                                {c.last_invoice_at
+                                  ? `Last visit: ${new Date(c.last_invoice_at).toLocaleDateString("en-IN")}`
+                                  : "Never billed"}
+                              </div>
+                            </div>
+                            <div className="text-sm font-semibold text-zinc-900">
+                              {c.bill_count_all_time} bills
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 rounded-lg border border-zinc-200 bg-white">
+            <div className="border-b border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
+              Service performance
+            </div>
+            {!servicePerformance ? (
+              <div className="p-4 text-sm text-zinc-700">Loading...</div>
+            ) : servicePerformance.top_by_revenue.length === 0 && servicePerformance.top_by_quantity.length === 0 ? (
+              <div className="p-4 text-sm text-zinc-700">No service usage in this range.</div>
+            ) : (
+              <div className="divide-y divide-zinc-200">
+                <div className="p-4">
+                  <div className="font-semibold text-zinc-900">Top services (by revenue)</div>
+                  {servicePerformance.top_by_revenue.length === 0 ? (
+                    <div className="mt-2 text-sm text-zinc-700">No data.</div>
+                  ) : (
+                    <div className="mt-3 divide-y divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200">
+                      {servicePerformance.top_by_revenue.map((s, idx) => (
+                        <div key={s.service_id} className="bg-white px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="font-semibold text-zinc-900">
+                                {idx + 1}. {s.service_name}
+                              </div>
+                              <div className="text-sm text-zinc-700">
+                                {s.qty} qty • {s.invoice_count} bill{s.invoice_count === 1 ? "" : "s"}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-zinc-900">
+                                {formatRupeesFromPaise(s.revenue_paise)}
+                              </div>
+                              <div className="text-xs text-zinc-700">Gross line total</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  <div className="font-semibold text-zinc-900">Top services (by quantity)</div>
+                  {servicePerformance.top_by_quantity.length === 0 ? (
+                    <div className="mt-2 text-sm text-zinc-700">No data.</div>
+                  ) : (
+                    <div className="mt-3 divide-y divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200">
+                      {servicePerformance.top_by_quantity.map((s, idx) => (
+                        <div key={s.service_id} className="bg-white px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="font-semibold text-zinc-900">
+                                {idx + 1}. {s.service_name}
+                              </div>
+                              <div className="text-sm text-zinc-700">
+                                {s.qty} qty • {s.invoice_count} bill{s.invoice_count === 1 ? "" : "s"}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-zinc-900">
+                                {formatRupeesFromPaise(s.revenue_paise)}
+                              </div>
+                              <div className="text-xs text-zinc-700">Gross line total</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
