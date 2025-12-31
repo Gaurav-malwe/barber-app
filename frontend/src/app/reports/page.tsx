@@ -85,34 +85,68 @@ export default function ReportsPage() {
   const { me, loading: meLoading, error: meError } = useMe();
 
   const [invoices, setInvoices] = useState<InvoiceSummary[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [invoicesError, setInvoicesError] = useState<string | null>(null);
   const [preset, setPreset] = useState<RangePreset>("TODAY");
   const [customerInsights, setCustomerInsights] = useState<CustomerInsights | null>(null);
   const [dormantDays, setDormantDays] = useState<30 | 60 | 90>(30);
   const [servicePerformance, setServicePerformance] = useState<ServicePerformance | null>(null);
+  const [customerInsightsOpen, setCustomerInsightsOpen] = useState(false);
+  const [servicePerformanceOpen, setServicePerformanceOpen] = useState(false);
+  const [customerInsightsLoading, setCustomerInsightsLoading] = useState(false);
+  const [servicePerformanceLoading, setServicePerformanceLoading] = useState(false);
+  const [customerInsightsError, setCustomerInsightsError] = useState<string | null>(null);
+  const [servicePerformanceError, setServicePerformanceError] = useState<string | null>(null);
 
+  const range = useMemo(() => {
+    const now = new Date();
+    const start = startOfLocalDay(now);
+    const end = addDaysLocal(start, 1);
+    const rangeStart = preset === "TODAY" ? start : addDaysLocal(end, preset === "7D" ? -7 : -30);
+    return { rangeStart, end };
+  }, [preset]);
+
+  // Always-on fetch for per-day breakdown + top summary cards.
   useEffect(() => {
     if (!me) return;
     let cancelled = false;
+    setInvoicesLoading(true);
+    setInvoicesError(null);
     (async () => {
       try {
-        const now = new Date();
-        const start = startOfLocalDay(now);
-        const end = addDaysLocal(start, 1);
-        const rangeStart = preset === "TODAY" ? start : addDaysLocal(end, preset === "7D" ? -7 : -30);
-
         const qs = new URLSearchParams({
-          start: rangeStart.toISOString(),
-          end: end.toISOString(),
+          start: range.rangeStart.toISOString(),
+          end: range.end.toISOString(),
         });
-
         const data = (await apiFetch(`/api/invoices?${qs.toString()}`)) as InvoiceSummary[];
         if (cancelled) return;
         setInvoices(data);
+      } catch (err) {
+        if (cancelled) return;
+        setInvoices([]);
+        setInvoicesError(err instanceof Error ? err.message : "Failed to load invoices");
+      } finally {
+        if (!cancelled) setInvoicesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [me, range.end, range.rangeStart]);
 
+  // Lazy: only fetch customer insights when the section is opened.
+  useEffect(() => {
+    if (!me) return;
+    if (!customerInsightsOpen) return;
+    let cancelled = false;
+    setCustomerInsightsLoading(true);
+    setCustomerInsightsError(null);
+    setCustomerInsights(null);
+    (async () => {
+      try {
         const insightsQs = new URLSearchParams({
-          start: rangeStart.toISOString(),
-          end: end.toISOString(),
+          start: range.rangeStart.toISOString(),
+          end: range.end.toISOString(),
           dormant_days: String(dormantDays),
           limit: "10",
           include_never: "true",
@@ -120,28 +154,49 @@ export default function ReportsPage() {
         const insights = (await apiFetch(`/api/reports/customers?${insightsQs.toString()}`)) as CustomerInsights;
         if (cancelled) return;
         setCustomerInsights(insights);
-
-        const servicesQs = new URLSearchParams({
-          start: rangeStart.toISOString(),
-          end: end.toISOString(),
-          limit: "10",
-        });
-        const services = (await apiFetch(`/api/reports/services?${servicesQs.toString()}`)) as ServicePerformance;
-        if (cancelled) return;
-        setServicePerformance(services);
-        setError(null);
       } catch (err) {
         if (cancelled) return;
-        setInvoices([]);
         setCustomerInsights(null);
-        setServicePerformance(null);
-        setError(err instanceof Error ? err.message : "Failed to load invoices");
+        setCustomerInsightsError(err instanceof Error ? err.message : "Failed to load customer insights");
+      } finally {
+        if (!cancelled) setCustomerInsightsLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [me, preset, dormantDays]);
+  }, [me, customerInsightsOpen, dormantDays, range.end, range.rangeStart]);
+
+  // Lazy: only fetch service performance when the section is opened.
+  useEffect(() => {
+    if (!me) return;
+    if (!servicePerformanceOpen) return;
+    let cancelled = false;
+    setServicePerformanceLoading(true);
+    setServicePerformanceError(null);
+    setServicePerformance(null);
+    (async () => {
+      try {
+        const servicesQs = new URLSearchParams({
+          start: range.rangeStart.toISOString(),
+          end: range.end.toISOString(),
+          limit: "10",
+        });
+        const services = (await apiFetch(`/api/reports/services?${servicesQs.toString()}`)) as ServicePerformance;
+        if (cancelled) return;
+        setServicePerformance(services);
+      } catch (err) {
+        if (cancelled) return;
+        setServicePerformance(null);
+        setServicePerformanceError(err instanceof Error ? err.message : "Failed to load service performance");
+      } finally {
+        if (!cancelled) setServicePerformanceLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [me, servicePerformanceOpen, range.end, range.rangeStart]);
 
   const { grossPaise, discountPaise, netPaise, billCount, cashNetPaise, upiNetPaise } = useMemo(() => {
     const totals = (invoices ?? []).reduce(
@@ -190,9 +245,9 @@ export default function ReportsPage() {
       <AppHeader title="Reports" backHref="/dashboard" />
       <AuthGate loading={meLoading} error={meError} me={me}>
         <div className="mx-auto max-w-2xl p-4">
-          {error ? (
+          {invoicesError ? (
             <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-              {error}
+              {invoicesError}
             </div>
           ) : null}
 
@@ -270,7 +325,7 @@ export default function ReportsPage() {
             <div className="border-b border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
               Per-day breakdown
             </div>
-            {invoices === null ? (
+            {invoices === null || invoicesLoading ? (
               <div className="p-4 text-sm text-zinc-700">Loading...</div>
             ) : perDay.length === 0 ? (
               <div className="p-4 text-sm text-zinc-700">No data for this range.</div>
@@ -303,11 +358,23 @@ export default function ReportsPage() {
           </div>
 
           <div className="mt-6 rounded-lg border border-zinc-200 bg-white">
-            <div className="border-b border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
-              Customer insights
-            </div>
-            {!customerInsights ? (
+            <button
+              type="button"
+              onClick={() => setCustomerInsightsOpen((v) => !v)}
+              className="flex w-full items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 text-left"
+            >
+              <div className="font-semibold text-zinc-900">Customer insights</div>
+              <div className="text-sm font-semibold text-zinc-700">{customerInsightsOpen ? "Hide" : "View"}</div>
+            </button>
+
+            {!customerInsightsOpen ? (
+              <div className="p-4 text-sm text-zinc-700">Tap “View” to load this report.</div>
+            ) : customerInsightsLoading ? (
               <div className="p-4 text-sm text-zinc-700">Loading...</div>
+            ) : customerInsightsError ? (
+              <div className="p-4 text-sm text-rose-700">{customerInsightsError}</div>
+            ) : !customerInsights ? (
+              <div className="p-4 text-sm text-zinc-700">No data.</div>
             ) : (
               <div className="divide-y divide-zinc-200">
                 <div className="p-4">
@@ -436,11 +503,23 @@ export default function ReportsPage() {
           </div>
 
           <div className="mt-6 rounded-lg border border-zinc-200 bg-white">
-            <div className="border-b border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
-              Service performance
-            </div>
-            {!servicePerformance ? (
+            <button
+              type="button"
+              onClick={() => setServicePerformanceOpen((v) => !v)}
+              className="flex w-full items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 text-left"
+            >
+              <div className="font-semibold text-zinc-900">Service performance</div>
+              <div className="text-sm font-semibold text-zinc-700">{servicePerformanceOpen ? "Hide" : "View"}</div>
+            </button>
+
+            {!servicePerformanceOpen ? (
+              <div className="p-4 text-sm text-zinc-700">Tap “View” to load this report.</div>
+            ) : servicePerformanceLoading ? (
               <div className="p-4 text-sm text-zinc-700">Loading...</div>
+            ) : servicePerformanceError ? (
+              <div className="p-4 text-sm text-rose-700">{servicePerformanceError}</div>
+            ) : !servicePerformance ? (
+              <div className="p-4 text-sm text-zinc-700">No data.</div>
             ) : servicePerformance.top_by_revenue.length === 0 && servicePerformance.top_by_quantity.length === 0 ? (
               <div className="p-4 text-sm text-zinc-700">No service usage in this range.</div>
             ) : (
