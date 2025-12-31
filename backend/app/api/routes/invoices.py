@@ -85,6 +85,7 @@ def get_invoice(invoice_id: uuid.UUID, db: Session = Depends(get_db), user=Depen
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     customer_name: str | None = None
+    customer_phone: str | None = None
     if invoice.customer_id is not None:
         customer = (
             db.query(Customer)
@@ -92,6 +93,7 @@ def get_invoice(invoice_id: uuid.UUID, db: Session = Depends(get_db), user=Depen
             .first()
         )
         customer_name = customer.name if customer else None
+        customer_phone = customer.phone if customer else None
 
     items = (
         db.query(InvoiceItem)
@@ -110,6 +112,7 @@ def get_invoice(invoice_id: uuid.UUID, db: Session = Depends(get_db), user=Depen
         id=invoice.id,
         customer_id=invoice.customer_id,
         customer_name=customer_name,
+        customer_phone=customer_phone,
         issued_at=invoice.issued_at,
         status=invoice.status,
         subtotal_paise=invoice.subtotal_paise,
@@ -141,6 +144,7 @@ def get_invoice(invoice_id: uuid.UUID, db: Session = Depends(get_db), user=Depen
 @router.post("/", response_model=InvoiceResponse)
 def create_invoice(payload: InvoiceCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
     customer_name: str | None = None
+    customer_phone: str | None = None
     if payload.customer_id is not None:
         customer = (
             db.query(Customer)
@@ -150,6 +154,7 @@ def create_invoice(payload: InvoiceCreate, db: Session = Depends(get_db), user=D
         if not customer:
             raise HTTPException(status_code=400, detail="Customer not found")
         customer_name = customer.name
+        customer_phone = customer.phone
 
     service_ids = [it.service_id for it in payload.items]
     services = (
@@ -225,6 +230,7 @@ def create_invoice(payload: InvoiceCreate, db: Session = Depends(get_db), user=D
         id=invoice.id,
         customer_id=invoice.customer_id,
         customer_name=customer_name,
+        customer_phone=customer_phone,
         issued_at=invoice.issued_at,
         status=invoice.status,
         subtotal_paise=invoice.subtotal_paise,

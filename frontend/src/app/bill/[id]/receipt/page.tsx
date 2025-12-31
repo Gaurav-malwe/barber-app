@@ -11,6 +11,22 @@ import { type InvoiceDetail } from "../../../../lib/invoices";
 import { formatRupeesFromPaise } from "@/lib/money";
 import { useMe } from "@/lib/useMe";
 
+function normalizePhoneForWhatsapp(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  let digits = phone.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length === 11 && digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  // Default to India country code for 10-digit numbers
+  if (digits.length === 10) {
+    digits = `91${digits}`;
+  }
+  // WhatsApp requires an international number with country code, digits only.
+  if (digits.length < 10 || digits.length > 15) return null;
+  return digits;
+}
+
 export default function ReceiptPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -68,7 +84,10 @@ export default function ReceiptPage() {
     return lines.join("\n");
   }, [invoice, me?.shop_name, totalPaise, subtotalPaise, discountPaise]);
 
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+  const whatsappNumber = normalizePhoneForWhatsapp(invoice?.customer_phone);
+  const whatsappHref = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappText)}`
+    : `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
 
   return (
     <div className="min-h-screen bg-zinc-50 pb-40">

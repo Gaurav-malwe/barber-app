@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     database_url: str
 
     jwt_secret: str
-    access_token_expires_minutes: int = 15
+    access_token_expires_minutes: int = 1440
     refresh_token_expires_days: int = 30
 
     # Comma-separated string or JSON array string.

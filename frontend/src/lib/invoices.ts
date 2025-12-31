@@ -20,6 +20,7 @@ export type InvoiceDetail = {
   id: string;
   customer_id: string | null;
   customer_name?: string | null;
+  customer_phone?: string | null;
   issued_at: string;
   status: string;
   subtotal_paise: number;

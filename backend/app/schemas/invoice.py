@@ -41,6 +41,7 @@ class InvoiceResponse(BaseModel):
     id: uuid.UUID
     customer_id: uuid.UUID | None
     customer_name: str | None = None
+    customer_phone: str | None = None
     issued_at: datetime
     status: str
     subtotal_paise: int

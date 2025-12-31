@@ -27,7 +27,7 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 8000
       JWT_SECRET: change-me-in-dev
-      ACCESS_TOKEN_EXPIRES_MINUTES: 15
+      ACCESS_TOKEN_EXPIRES_MINUTES: 1440
       REFRESH_TOKEN_EXPIRES_DAYS: 30
       CORS_ORIGINS: "http://localhost:3000"
       DATABASE_URL: "postgresql+psycopg://barber:barber@db:5432/barber_app"
