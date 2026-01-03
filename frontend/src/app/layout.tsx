@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NaayiKhata",
-  description: "Barber CRM + Daily Bill Book",
+  title: "Groomly",
+  description: "Billing, customers, and reports for salons & barbers.",
 };
 
 export default function RootLayout({

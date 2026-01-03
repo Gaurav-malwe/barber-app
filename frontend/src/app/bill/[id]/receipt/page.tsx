@@ -66,7 +66,7 @@ export default function ReceiptPage() {
   const whatsappText = useMemo(() => {
     if (!invoice) return "";
     const lines = [
-      `${me?.shop_name ?? "NaayiKhata"}`,
+      `${me?.shop_name ?? "Groomly"}`,
       `Bill: ${formatRupeesFromPaise(totalPaise)}`,
       invoice.customer_name ? `Customer: ${invoice.customer_name}` : "Customer: Walk-in",
       "",
@@ -119,7 +119,7 @@ export default function ReceiptPage() {
           ) : (
             <div className="mt-4 rounded-lg border-2 border-dashed border-zinc-300 bg-white p-6">
               <div className="text-center">
-                <div className="text-2xl font-bold">{me?.shop_name ?? "NaayiKhata"}</div>
+                <div className="text-2xl font-bold">{me?.shop_name ?? "Groomly"}</div>
                 <div className="mt-1 text-sm text-zinc-700">
                   {new Date(invoice.issued_at).toLocaleString("en-IN")}
                 </div>

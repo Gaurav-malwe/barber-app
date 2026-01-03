@@ -77,7 +77,7 @@ export default function DashboardPage() {
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4">
           <div>
             <div className="text-sm text-zinc-300">Shop</div>
-            <div className="text-lg font-bold">{me?.shop_name ?? "NaayiKhata"}</div>
+            <div className="text-lg font-bold">{me?.shop_name ?? "Groomly"}</div>
           </div>
           <Link
             href="/settings"
