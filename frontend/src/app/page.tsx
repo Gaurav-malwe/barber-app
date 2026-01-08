@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
@@ -15,9 +16,18 @@ export default function Home() {
 
         <header className="absolute inset-x-0 top-0 z-20">
           <div className="border-b border-white/15 bg-white/10 backdrop-blur">
-            <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
-              <div className="flex items-center gap-2">
-                <div className="text-xl font-extrabold tracking-tight text-white">Groomly</div>
+            <div className="mx-auto flex max-w-5xl items-center justify-between overflow-visible px-4 py-3 sm:px-6">
+              <div className="relative flex items-center gap-3 overflow-visible">
+                <div className="relative h-10 w-40 sm:h-12">
+                  <Image
+                    src="/landing/hero-groomly-logo-transparent.png"
+                    alt="Groomly logo"
+                    width={260}
+                    height={110}
+                    priority
+                    className="absolute left-[-6%] top-1/2 h-16 w-auto -translate-y-1/2 drop-shadow-lg sm:h-20"
+                  />
+                </div>
                 <div className="hidden rounded-full border border-white/15 bg-white/10 px-2 py-1 text-xs font-semibold text-white/90 sm:block">
                   India-first
                 </div>
