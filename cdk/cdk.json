@@ -1,0 +1,9 @@
+{
+  "app": "python3 app.py",
+  "context": {
+    "@aws-cdk/core:bootstrapQualifier": "barber",
+    "@aws-cdk/aws-lambda:recognizeVersionProps": true,
+    "@aws-cdk/aws-ecs-patterns:removeDefaultDesiredCount": true,
+    "@aws-cdk/aws-rds:enableInstanceResourcePropertyConstraint": false
+  }
+}
