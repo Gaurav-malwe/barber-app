@@ -2,10 +2,11 @@ version: 1
 applications:
   - appRoot: frontend
     frontend:
+      env:
+        NEXT_DISABLE_LIGHTNINGCSS: "1"
       phases:
         preBuild:
           commands:
-            - export NEXT_DISABLE_LIGHTNINGCSS=1
             - npm ci --include=dev
         build:
           commands:
