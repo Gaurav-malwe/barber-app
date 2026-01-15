@@ -8,7 +8,6 @@ from aws_cdk import (
     aws_certificatemanager as acm,
     aws_ec2 as ec2,
     aws_lambda as _lambda,
-    aws_lambda_python_alpha as lambda_alpha,
     aws_route53 as route53,
     aws_route53_targets as targets,
     aws_secretsmanager as secretsmanager,
@@ -42,24 +41,59 @@ class AppStack(cdk.Stack):
             description="Lambda egress to DB, endpoints, and HTTPS",
         )
 
-        db_cluster.connections.allow_default_port_from(
-            lambda_sg, description="App Lambda to Aurora"
+        # IMPORTANT: db_cluster/db_security_group live in DataStack.
+        # Avoid modifying them from this stack (creates cyclic dependencies).
+        # Instead, create the SG ingress rule as an AppStack resource.
+        ec2.CfnSecurityGroupIngress(
+            self,
+            "DbIngressFromLambda",
+            group_id=db_security_group.security_group_id,
+            ip_protocol="tcp",
+            from_port=5432,
+            to_port=5432,
+            source_security_group_id=lambda_sg.security_group_id,
+            description="Allow Lambda SG to reach Aurora (5432)",
         )
 
         lambda_env = {
-            "DATABASE_URL": app_secret.secret_value_from_json("database_url").unsafe_unwrap(),
-            "JWT_SECRET": app_secret.secret_value_from_json("jwt_secret").unsafe_unwrap(),
-            "CORS_ORIGINS": app_secret.secret_value_from_json("cors_origins").unsafe_unwrap(),
-            "ENVIRONMENT": app_secret.secret_value_from_json("environment").unsafe_unwrap(),
+            # These resolve as CloudFormation dynamic references, not plaintext.
+            "DATABASE_URL": app_secret.secret_value_from_json("database_url").to_string(),
+            "JWT_SECRET": app_secret.secret_value_from_json("jwt_secret").to_string(),
+            "CORS_ORIGINS": app_secret.secret_value_from_json("cors_origins").to_string(),
+            "ENVIRONMENT": app_secret.secret_value_from_json("environment").to_string(),
         }
 
-        api_function = lambda_alpha.PythonFunction(
+        # Bundle backend + dependencies into a single Lambda zip.
+        # This avoids aws-lambda-python-alpha's internal rsync (which can fail on macOS).
+        api_code = _lambda.Code.from_asset(
+            "../backend",
+            bundling=cdk.BundlingOptions(
+                image=_lambda.Runtime.PYTHON_3_12.bundling_image,
+                command=[
+                    "bash",
+                    "-c",
+                    "set -euo pipefail; "
+                    "tar -cf - "
+                    "  --exclude='alembic' "
+                    "  --exclude='alembic.ini' "
+                    "  --exclude='.venv' "
+                    "  --exclude='__pycache__' "
+                    "  --exclude='.pytest_cache' "
+                    "  --exclude='.mypy_cache' "
+                    "  --exclude='*.pyc' "
+                    "  . | tar -xf - -C /asset-output; "
+                    "cd /asset-output; "
+                    "python -m pip install -r requirements.txt -t /asset-output",
+                ],
+            ),
+        )
+
+        api_function = _lambda.Function(
             self,
             "ApiFunction",
-            entry="../backend",
-            index="app/main.py",
-            handler="handler",
             runtime=_lambda.Runtime.PYTHON_3_12,
+            handler="app.main.handler",
+            code=api_code,
             memory_size=512,
             timeout=Duration.seconds(10),
             vpc=vpc,
@@ -110,14 +144,30 @@ class AppStack(cdk.Stack):
                 self,
                 "ApiAliasRecord",
                 zone=hosted_zone,
-                record_name=api_domain_name.split(".")[0],
+                record_name=self._relative_record_name(
+                    fqdn=api_domain_name,
+                    zone_name=hosted_zone_domain,
+                ),
                 target=route53.RecordTarget.from_alias(
                     targets.ApiGatewayv2DomainProperties(
-                        domain_name=domain.regional_domain_name,
-                        regional_hosted_zone_id=domain.regional_hosted_zone_id,
+                        domain.regional_domain_name,
+                        domain.regional_hosted_zone_id,
                     )
                 ),
             )
 
         cdk.CfnOutput(self, "HttpApiEndpoint", value=http_api.url)
         cdk.CfnOutput(self, "LambdaFunctionName", value=api_function.function_name)
+
+    @staticmethod
+    def _relative_record_name(*, fqdn: str, zone_name: str) -> str:
+        fqdn = fqdn.rstrip(".")
+        zone_name = zone_name.rstrip(".")
+        if fqdn == zone_name:
+            return ""  # apex
+        suffix = "." + zone_name
+        if not fqdn.endswith(suffix):
+            raise ValueError(
+                f"apiDomainName '{fqdn}' must be within hostedZoneDomain '{zone_name}'"
+            )
+        return fqdn[: -len(suffix)]

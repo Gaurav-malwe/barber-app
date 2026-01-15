@@ -14,5 +14,9 @@
     "ap-south-1a",
     "ap-south-1b",
     "ap-south-1c"
-  ]
+  ],
+  "hosted-zone:account=581790375185:domainName=synkrustech.com:region=ap-south-1": {
+    "Id": "/hostedzone/Z02473812BBZMY7K6LIFQ",
+    "Name": "synkrustech.com."
+  }
 }
