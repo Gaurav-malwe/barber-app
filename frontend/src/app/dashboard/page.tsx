@@ -44,10 +44,10 @@ export default function DashboardPage() {
     };
   }, [me]);
 
-  const today = new Date();
   const todayInvoices = useMemo(() => {
+    const today = new Date();
     return (invoices ?? []).filter((inv) => isSameLocalDay(new Date(inv.issued_at), today));
-  }, [invoices, today]);
+  }, [invoices]);
   const todayTotalPaise = useMemo(
     () => todayInvoices.reduce((sum, inv) => sum + inv.total_paise, 0),
     [todayInvoices]
@@ -157,7 +157,7 @@ export default function DashboardPage() {
                   return (
                     <Link
                       key={inv.id}
-                      href={`/bill/${inv.id}/receipt`}
+                      href={`/bill/receipt?id=${encodeURIComponent(inv.id)}`}
                       className="block px-4 py-4 hover:bg-zinc-50"
                     >
                       <div className="flex items-center justify-between gap-3">

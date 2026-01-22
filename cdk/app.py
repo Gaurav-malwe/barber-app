@@ -12,6 +12,7 @@ account = os.getenv("CDK_DEFAULT_ACCOUNT")
 region = os.getenv("CDK_DEFAULT_REGION")
 
 api_domain_name = app.node.try_get_context("apiDomainName")
+frontend_domain_name = app.node.try_get_context("frontendDomainName")
 hosted_zone_domain = app.node.try_get_context("hostedZoneDomain")
 
 # CDK will synth ALL stacks in the app, even if you deploy only one.
@@ -40,6 +41,7 @@ if include_app_stack:
         app_secret=data_stack.app_secret,
         api_domain_name=api_domain_name,
         hosted_zone_domain=hosted_zone_domain,
+        frontend_domain_name=frontend_domain_name,
         env=cdk.Environment(account=account, region=region),
     )
     app_stack.add_dependency(data_stack)

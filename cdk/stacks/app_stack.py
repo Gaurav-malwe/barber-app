@@ -6,8 +6,12 @@ from aws_cdk import (
     aws_apigatewayv2 as apigwv2,
     aws_apigatewayv2_integrations as apigwv2_integrations,
     aws_certificatemanager as acm,
+    aws_cloudfront as cloudfront,
+    aws_cloudfront_origins as origins,
     aws_ec2 as ec2,
     aws_lambda as _lambda,
+    aws_s3 as s3,
+    aws_s3_deployment as s3_deployment,
     aws_route53 as route53,
     aws_route53_targets as targets,
     aws_secretsmanager as secretsmanager,
@@ -29,9 +33,16 @@ class AppStack(cdk.Stack):
         app_secret: secretsmanager.ISecret,
         api_domain_name: Optional[str] = None,
         hosted_zone_domain: Optional[str] = None,
+        frontend_domain_name: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        hosted_zone = None
+        if (api_domain_name or frontend_domain_name) and hosted_zone_domain:
+            hosted_zone = route53.HostedZone.from_lookup(
+                self, "HostedZone", domain_name=hosted_zone_domain
+            )
 
         lambda_sg = ec2.SecurityGroup(
             self,
@@ -113,12 +124,8 @@ class AppStack(cdk.Stack):
             ),
         )
 
-        if api_domain_name and hosted_zone_domain:
-            hosted_zone = route53.HostedZone.from_lookup(
-                self, "HostedZone", domain_name=hosted_zone_domain
-            )
-
-            certificate = acm.Certificate(
+        if api_domain_name and hosted_zone:
+            api_certificate = acm.Certificate(
                 self,
                 "ApiCertificate",
                 domain_name=api_domain_name,
@@ -129,7 +136,7 @@ class AppStack(cdk.Stack):
                 self,
                 "ApiCustomDomain",
                 domain_name=api_domain_name,
-                certificate=certificate,
+                certificate=api_certificate,
             )
 
             apigwv2.ApiMapping(
@@ -158,6 +165,178 @@ class AppStack(cdk.Stack):
 
         cdk.CfnOutput(self, "HttpApiEndpoint", value=http_api.url)
         cdk.CfnOutput(self, "LambdaFunctionName", value=api_function.function_name)
+
+        frontend_bucket = s3.Bucket(
+            self,
+            "FrontendBucket",
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            versioned=True,
+        )
+
+        origin_identity = cloudfront.OriginAccessIdentity(
+            self, "FrontendOAI", comment="OAI for S3-backed Next static site"
+        )
+        frontend_bucket.grant_read(origin_identity)
+
+        html_cache_policy = cloudfront.CachePolicy(
+            self,
+            "HtmlCachePolicy",
+            default_ttl=Duration.seconds(60),
+            min_ttl=Duration.seconds(0),
+            max_ttl=Duration.seconds(300),
+            cache_policy_name=f"{self.stack_name}-html-cache",
+        )
+
+        static_cache_policy = cloudfront.CachePolicy(
+            self,
+            "StaticCachePolicy",
+            default_ttl=Duration.days(365),
+            min_ttl=Duration.days(1),
+            max_ttl=Duration.days(365),
+            cache_policy_name=f"{self.stack_name}-static-cache",
+        )
+
+        frontend_certificate = None
+        if frontend_domain_name and hosted_zone:
+            frontend_certificate = acm.DnsValidatedCertificate(
+                self,
+                "FrontendCertificate",
+                domain_name=frontend_domain_name,
+                hosted_zone=hosted_zone,
+                region="us-east-1",  # CloudFront requires us-east-1 certificates
+            )
+
+        frontend_origin = origins.S3Origin(
+            frontend_bucket, origin_access_identity=origin_identity
+        )
+
+        frontend_distribution = cloudfront.Distribution(
+            self,
+            "FrontendDistribution",
+            default_root_object="index.html",
+            domain_names=[frontend_domain_name] if frontend_certificate else None,
+            certificate=frontend_certificate,
+            default_behavior=cloudfront.BehaviorOptions(
+                origin=frontend_origin,
+                viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                cache_policy=html_cache_policy,
+            ),
+            additional_behaviors={
+                "_next/static/*": cloudfront.BehaviorOptions(
+                    origin=frontend_origin,
+                    viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                    cache_policy=static_cache_policy,
+                ),
+                "static/*": cloudfront.BehaviorOptions(
+                    origin=frontend_origin,
+                    viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                    cache_policy=static_cache_policy,
+                ),
+            },
+            error_responses=[
+                cloudfront.ErrorResponse(
+                    http_status=403,
+                    response_http_status=200,
+                    response_page_path="/index.html",
+                    ttl=Duration.seconds(0),
+                ),
+                cloudfront.ErrorResponse(
+                    http_status=404,
+                    response_http_status=200,
+                    response_page_path="/index.html",
+                    ttl=Duration.seconds(0),
+                ),
+            ],
+        )
+
+        long_cache = [
+            s3_deployment.CacheControl.from_string(
+                "public,max-age=31536000,immutable"
+            )
+        ]
+        html_cache = [
+            s3_deployment.CacheControl.from_string("public,max-age=0,must-revalidate")
+        ]
+
+        s3_deployment.BucketDeployment(
+            self,
+            "DeployNextStatic",
+            sources=[s3_deployment.Source.asset("../frontend/out/_next/static")],
+            destination_bucket=frontend_bucket,
+            destination_key_prefix="_next/static",
+            cache_control=long_cache,
+            prune=True,
+        )
+
+        s3_deployment.BucketDeployment(
+            self,
+            "DeployHtml",
+            sources=[
+                s3_deployment.Source.asset(
+                    "../frontend/out",
+                    exclude=[
+                        "_next/static/*",
+                        "_next/static/**",
+                        "static/*",
+                        "static/**",
+                        "**/*.js",
+                        "**/*.css",
+                        "**/*.json",
+                        "**/*.map",
+                        "**/*.png",
+                        "**/*.jpg",
+                        "**/*.jpeg",
+                        "**/*.webp",
+                        "**/*.svg",
+                        "**/*.ico",
+                        "**/*.txt",
+                    ],
+                )
+            ],
+            destination_bucket=frontend_bucket,
+            cache_control=html_cache,
+            prune=True,
+            distribution=frontend_distribution,
+            distribution_paths=[
+                "/index.html",
+                "/*.html",
+                "/*/index.html",
+            ],
+        )
+
+        s3_deployment.BucketDeployment(
+            self,
+            "DeployAssets",
+            sources=[
+                s3_deployment.Source.asset(
+                    "../frontend/out",
+                    exclude=["_next/static/**", "**/*.html"],
+                )
+            ],
+            destination_bucket=frontend_bucket,
+            cache_control=long_cache,
+            prune=True,
+        )
+
+        if frontend_domain_name and hosted_zone:
+            route53.ARecord(
+                self,
+                "FrontendAliasRecord",
+                zone=hosted_zone,
+                record_name=self._relative_record_name(
+                    fqdn=frontend_domain_name,
+                    zone_name=hosted_zone_domain,
+                ),
+                target=route53.RecordTarget.from_alias(
+                    targets.CloudFrontTarget(frontend_distribution)
+                ),
+            )
+
+        cdk.CfnOutput(
+            self, "FrontendDistributionDomain", value=frontend_distribution.domain_name
+        )
+        cdk.CfnOutput(self, "FrontendBucketName", value=frontend_bucket.bucket_name)
 
     @staticmethod
     def _relative_record_name(*, fqdn: str, zone_name: str) -> str:
