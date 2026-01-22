@@ -23,7 +23,7 @@ class AppStack(cdk.Stack):
     """Lambda, HTTP API, custom domain, and Amplify placeholder."""
 
     def __init__(
-        self,
+            self,
         scope: Construct,
         construct_id: str,
         *,
@@ -105,6 +105,7 @@ class AppStack(cdk.Stack):
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="app.main.handler",
             code=api_code,
+            architecture=_lambda.Architecture.ARM_64,
             memory_size=512,
             timeout=Duration.seconds(10),
             vpc=vpc,
@@ -112,9 +113,48 @@ class AppStack(cdk.Stack):
             environment=lambda_env,
         )
 
+        migration_code = _lambda.Code.from_asset(
+            "../backend",
+            bundling=cdk.BundlingOptions(
+                image=_lambda.Runtime.PYTHON_3_12.bundling_image,
+                command=[
+                    "bash",
+                    "-c",
+                    "set -euo pipefail; "
+                    "tar -cf - "
+                    "  --exclude='alembic' "
+                    "  --exclude='.venv' "
+                    "  --exclude='__pycache__' "
+                    "  --exclude='.pytest_cache' "
+                    "  --exclude='.mypy_cache' "
+                    "  --exclude='*.pyc' "
+                    "  . | tar -xf - -C /asset-output; "
+                    "cp -R alembic /asset-output/alembic_migrations; "
+                    "cd /asset-output; "
+                    "python -m pip install -r requirements.txt -t /asset-output",
+                ],
+            ),
+        )
+
+        migration_function = _lambda.Function(
+            self,
+            "MigrationFunction",
+            runtime=_lambda.Runtime.PYTHON_3_12,
+            handler="app.migrate.handler",
+            code=migration_code,
+            architecture=_lambda.Architecture.ARM_64,
+            memory_size=1024,
+            timeout=Duration.minutes(5),
+            vpc=vpc,
+            security_groups=[lambda_sg],
+            environment=lambda_env,
+        )
+
         app_secret.grant_read(api_function)
+        app_secret.grant_read(migration_function)
         if db_cluster.secret is not None:
             db_cluster.secret.grant_read(api_function)
+            db_cluster.secret.grant_read(migration_function)
 
         http_api = apigwv2.HttpApi(
             self,
@@ -165,6 +205,9 @@ class AppStack(cdk.Stack):
 
         cdk.CfnOutput(self, "HttpApiEndpoint", value=http_api.url)
         cdk.CfnOutput(self, "LambdaFunctionName", value=api_function.function_name)
+        cdk.CfnOutput(
+            self, "MigrationFunctionName", value=migration_function.function_name
+        )
 
         frontend_bucket = s3.Bucket(
             self,
@@ -197,6 +240,39 @@ class AppStack(cdk.Stack):
             cache_policy_name=f"{self.stack_name}-static-cache",
         )
 
+        viewer_request_fn = cloudfront.Function(
+            self,
+            "FrontendUrlRewrite",
+            code=cloudfront.FunctionCode.from_inline(
+                """
+                function handler(event) {
+                    var request = event.request;
+                    var uri = request.uri;
+
+                    if (uri.startsWith('/_next/') || uri.startsWith('/static/') || uri.startsWith('/api/')) {
+                        return request;
+                    }
+
+                    if (uri === '/') {
+                        request.uri = '/index.html';
+                        return request;
+                    }
+
+                    if (uri.endsWith('/')) {
+                        request.uri = uri.slice(0, -1) + '.html';
+                        return request;
+                    }
+
+                    if (uri.indexOf('.') === -1) {
+                        request.uri = uri + '.html';
+                    }
+
+                    return request;
+                }
+                """
+            ),
+        )
+
         frontend_certificate = None
         if frontend_domain_name and hosted_zone:
             frontend_certificate = acm.DnsValidatedCertificate(
@@ -221,6 +297,12 @@ class AppStack(cdk.Stack):
                 origin=frontend_origin,
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 cache_policy=html_cache_policy,
+                function_associations=[
+                    cloudfront.FunctionAssociation(
+                        event_type=cloudfront.FunctionEventType.VIEWER_REQUEST,
+                        function=viewer_request_fn,
+                    )
+                ],
             ),
             additional_behaviors={
                 "_next/static/*": cloudfront.BehaviorOptions(
@@ -262,7 +344,12 @@ class AppStack(cdk.Stack):
         s3_deployment.BucketDeployment(
             self,
             "DeployNextStatic",
-            sources=[s3_deployment.Source.asset("../frontend/out/_next/static")],
+            sources=[
+                s3_deployment.Source.asset(
+                    "../frontend/out/_next/static",
+                    exclude=[".DS_Store"],
+            )
+            ],
             destination_bucket=frontend_bucket,
             destination_key_prefix="_next/static",
             cache_control=long_cache,
@@ -280,6 +367,7 @@ class AppStack(cdk.Stack):
                         "_next/static/**",
                         "static/*",
                         "static/**",
+                        ".DS_Store",
                         "**/*.js",
                         "**/*.css",
                         "**/*.json",
@@ -316,7 +404,7 @@ class AppStack(cdk.Stack):
             ],
             destination_bucket=frontend_bucket,
             cache_control=long_cache,
-            prune=True,
+            prune=False,
         )
 
         if frontend_domain_name and hosted_zone:

@@ -29,9 +29,9 @@ class Settings(BaseSettings):
         if v.startswith("["):
             parsed = json.loads(v)
             if isinstance(parsed, list):
-                return [str(x) for x in parsed]
+                return [str(x).strip().rstrip("/") for x in parsed]
             return []
-        return [item.strip() for item in v.split(",") if item.strip()]
+        return [item.strip().rstrip("/") for item in v.split(",") if item.strip()]
 
     @classmethod
     def settings_customise_sources(
