@@ -1,72 +1,62 @@
-Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file
+Deployment Instructions and Lessons Learned
 
-- [ ] Verify that the copilot-instructions.md file in the .github directory is created.
+Project Overview
+- Frontend: Next.js static export hosted on S3 + CloudFront.
+- Backend: FastAPI + Mangum on Lambda behind API Gateway HTTP API + custom domain.
+- Infra: AWS CDK (Python) in cdk/ with BarberDataStack and BarberAppStack.
 
-- [ ] Clarify Project Requirements
-	Ask for project type, language, and frameworks if not specified. Skip if already provided.
+Required Preconditions
+- Docker Desktop must be running before any CDK deploy. Lambda bundling uses Docker.
+- AWS profile configured (synkrustech) and correct region (ap-south-1).
+- Secrets Manager AppConfigSecret must include database_url, jwt_secret, cors_origins, environment.
 
-- [ ] Scaffold the Project
-	Ensure that the previous step has been marked as completed.
-	Call project setup tool with projectType parameter.
-	Run scaffolding command to create project files and folders.
-	Use '.' as the working directory.
-	If no appropriate projectType is available, search documentation using available tools.
-	Otherwise, create the project structure manually using available file creation tools.
+Deployment Steps (CDK)
+1) Deploy data stack and app stack via CDK from cdk/.
+2) Confirm outputs:
+   - HttpApiEndpoint
+   - LambdaFunctionName
+   - MigrationFunctionName
+   - FrontendBucketName
+   - FrontendDistributionDomain
 
-- [ ] Customize the Project
-	Verify that all previous steps have been completed successfully and you have marked the step as completed.
-	Develop a plan to modify codebase according to user requirements.
-	Apply modifications using appropriate tools and user-provided references.
-	Skip this step for "Hello World" projects.
+Database Migrations (Required)
+- The API will 500 if tables are missing (users table). This causes browser CORS errors.
+- Run the Migration Lambda after deploy to apply Alembic migrations.
+- Migration entrypoint: backend/app/migrate.py
+- Bundling excludes the alembic folder and copies it to alembic_migrations.
+- The migration Lambda uses script_location=alembic_migrations.
 
-- [ ] Install Required Extensions
-	ONLY install extensions provided mentioned in the get_project_setup_info. Skip this step otherwise and mark as completed.
+Frontend Static Export Notes
+- Next.js is exported to frontend/out.
+- CloudFront function rewrites /login and /register to .html.
+- Bucket deployments split:
+  - _next/static with long cache
+  - HTML with short cache
+  - Other assets with long cache
+- Invalidate CloudFront when HTML routes are updated.
 
-- [ ] Compile the Project
-	Verify that all previous steps have been completed.
-	Install any missing dependencies.
-	Run diagnostics and resolve any issues.
-	Check for markdown files in project folder for relevant instructions on how to do this.
+CORS Configuration
+- CORSMiddleware reads CORS_ORIGINS from Secrets Manager.
+- cors_origins supports comma-separated or JSON array string.
+- Trailing slashes are stripped in settings.cors_origins_list.
+- Preflight should return 200 with Access-Control-Allow-Origin.
 
-- [ ] Create and Run Task
-	Verify that all previous steps have been completed.
-	Check https://code.visualstudio.com/docs/debugtest/tasks to determine if the project needs a task. If so, use the create_and_run_task to create and launch a task based on package.json, README.md, and project structure.
-	Skip this step otherwise.
+Do / Don’t (To and Fro History)
+Do:
+- Keep Docker running before any CDK deploy.
+- Run MigrationFunction after deploy to create tables.
+- Check Lambda logs when CORS errors appear; 500s remove CORS headers.
+- Ensure cors_origins in Secrets Manager matches the frontend domain exactly.
+- Use CloudFront URL rewrite function for static Next.js routes.
 
-- [ ] Launch the Project
-	Verify that all previous steps have been completed.
-	Prompt user for debug mode, launch only if confirmed.
+Don’t:
+- Don’t assume CORS is wrong when API returns 500.
+- Don’t deploy without migrations; requests will fail with missing tables.
+- Don’t remove _next/static assets from S3 or prune assets incorrectly.
+- Don’t rely on dynamic Next.js routes when using static export.
+- Don’t set Docker platform in CDK unless supported by aws-cdk version.
 
-- [ ] Ensure Documentation is Complete
-	Verify that README.md and the copilot-instructions.md file in the .github directory exists and contains current project information.
-	Clean up the copilot-instructions.md file in the .github directory by removing all HTML comments.
-
-Execution Guidelines
-PROGRESS TRACKING:
-- If any tools are available to manage the above todo list, use it to track progress through this checklist.
-- After completing each step, mark it complete and add a summary.
-- Read current todo list status before starting each new step.
-
-COMMUNICATION RULES:
-- Avoid verbose explanations or printing full command outputs.
-- If a step is skipped, state that briefly (e.g. "No extensions needed").
-- Do not explain project structure unless asked.
-- Keep explanations concise and focused.
-
-DEVELOPMENT RULES:
-- Use '.' as the working directory unless user specifies otherwise.
-- Avoid adding media or external links unless explicitly required.
-- Use placeholders only with a note that they should be replaced.
-- If you are working on a VS Code extension, use the VS Code API tool with a query to find relevant VS Code API references and samples related to that query.
-
-TASK COMPLETION RULES:
-- Your task is complete when:
-  - Project is successfully scaffolded and compiled without errors
-  - copilot-instructions.md file in the .github directory exists in the project
-  - README.md file exists and is up to date
-  - User is provided with clear instructions to debug/launch the project
-
-Before starting a new task in the above plan, update progress in the plan.
-- Work through each checklist item systematically.
-- Keep communication concise and focused.
-- Follow development best practices.
+Validation Checklist
+- OPTIONS and POST to /api/auth/register return Access-Control-Allow-Origin.
+- POST returns 422 for empty payload (expected) instead of 500.
+- /login and /register load from CloudFront without 403/404.
