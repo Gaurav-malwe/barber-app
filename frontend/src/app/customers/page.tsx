@@ -36,7 +36,7 @@ export default function CustomersPage() {
 
     (async () => {
       try {
-        const data = await apiFetch("/api/customers?page=1&limit=200");
+        const data = await apiFetch("/api/customers?page=1&limit=100");
         if (cancelled) return;
         if (Array.isArray(data)) {
           setCustomers(data as Customer[]);

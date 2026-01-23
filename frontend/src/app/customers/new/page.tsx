@@ -14,6 +14,13 @@ export default function NewCustomerPage() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
+  const [anniversary, setAnniversary] = useState("");
+  const [referralSource, setReferralSource] = useState("");
+  const [marketingConsent, setMarketingConsent] = useState(true);
+  const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,6 +35,13 @@ export default function NewCustomerPage() {
         body: JSON.stringify({
           name: name.trim(),
           phone: phone.trim() || null,
+          email: email.trim() || null,
+          dob: dob || null,
+          gender: gender || null,
+          anniversary: anniversary || null,
+          referral_source: referralSource.trim() || null,
+          marketing_consent: marketingConsent,
+          whatsapp_opt_in: whatsappOptIn,
           notes: notes.trim() || null,
         }),
       });
@@ -62,6 +76,66 @@ export default function NewCustomerPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
+              <input
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Email (optional)"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <input
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Date of birth (optional)"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                />
+                <select
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as "male" | "female" | "")}
+                >
+                  <option value="">Gender (optional)</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <input
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Anniversary (optional)"
+                  type="date"
+                  value={anniversary}
+                  onChange={(e) => setAnniversary(e.target.value)}
+                />
+                <input
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Referral source (optional)"
+                  value={referralSource}
+                  onChange={(e) => setReferralSource(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={marketingConsent}
+                    onChange={(e) => setMarketingConsent(e.target.checked)}
+                  />
+                  Marketing consent (default on)
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={whatsappOptIn}
+                    onChange={(e) => setWhatsappOptIn(e.target.checked)}
+                  />
+                  WhatsApp opt-in (default on)
+                </label>
+              </div>
               <textarea
                 className="min-h-[96px] w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="Notes (optional)"
