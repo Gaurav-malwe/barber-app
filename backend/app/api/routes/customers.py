@@ -17,7 +17,7 @@ def list_customers(
     q: str | None = Query(default=None, max_length=200),
     name: str | None = Query(default=None, max_length=200),
     page: int = Query(default=1, ge=1),
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=20, ge=1, le=200),
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
 ):
