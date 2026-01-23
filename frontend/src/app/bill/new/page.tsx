@@ -61,6 +61,7 @@ function NewBillPageInner() {
 
   const [services, setServices] = useState<Service[] | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerQueryInput, setCustomerQueryInput] = useState("");
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerPage, setCustomerPage] = useState(1);
   const [customerHasMore, setCustomerHasMore] = useState(true);
@@ -90,6 +91,13 @@ function NewBillPageInner() {
       }
     })();
   }, [me]);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setCustomerQuery(customerQueryInput.trim());
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [customerQueryInput]);
 
   useEffect(() => {
     if (!me) return;
@@ -300,8 +308,8 @@ function NewBillPageInner() {
               <input
                 className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="Search customer by name"
-                value={customerQuery}
-                onChange={(e) => setCustomerQuery(e.target.value)}
+                value={customerQueryInput}
+                onChange={(e) => setCustomerQueryInput(e.target.value)}
               />
 
               {customerError ? (
@@ -353,10 +361,10 @@ function NewBillPageInner() {
 
                 {!customerLoading && customers.length === 0 ? (
                   <div className="px-3 py-3 text-sm text-zinc-700">
-                    {customerQuery.trim()
+                    {customerQueryInput.trim()
                       ? "No matching customers"
                       : "No customers yet."}
-                    {!customerQuery.trim() ? (
+                    {!customerQueryInput.trim() ? (
                       <Link className="ml-1 underline" href="/customers/new">
                         Add one
                       </Link>
