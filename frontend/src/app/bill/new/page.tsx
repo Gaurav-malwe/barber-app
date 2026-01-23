@@ -178,7 +178,7 @@ function NewBillPageInner() {
         }),
       })) as { id: string };
 
-      router.push(`/bill/${invoice.id}/receipt`);
+      router.push(`/bill/receipt?id=${encodeURIComponent(invoice.id)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save bill");
     } finally {

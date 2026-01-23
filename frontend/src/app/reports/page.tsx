@@ -386,7 +386,7 @@ export default function ReportsPage() {
                       {customerInsights.repeat_customers.map((c) => (
                         <Link
                           key={c.customer_id}
-                          href={`/customers/${c.customer_id}`}
+                          href={`/customers/view?id=${encodeURIComponent(c.customer_id)}`}
                           className="block bg-white px-4 py-3 hover:bg-zinc-50"
                         >
                           <div className="flex items-center justify-between gap-3">
@@ -418,7 +418,7 @@ export default function ReportsPage() {
                       {customerInsights.top_customers.map((c, idx) => (
                         <Link
                           key={c.customer_id}
-                          href={`/customers/${c.customer_id}`}
+                          href={`/customers/view?id=${encodeURIComponent(c.customer_id)}`}
                           className="block bg-white px-4 py-3 hover:bg-zinc-50"
                         >
                           <div className="flex items-center justify-between gap-3">
@@ -477,7 +477,7 @@ export default function ReportsPage() {
                       {customerInsights.dormant_customers.map((c) => (
                         <Link
                           key={c.customer_id}
-                          href={`/customers/${c.customer_id}`}
+                          href={`/customers/view?id=${encodeURIComponent(c.customer_id)}`}
                           className="block bg-white px-4 py-3 hover:bg-zinc-50"
                         >
                           <div className="flex items-center justify-between gap-3">

@@ -107,7 +107,7 @@ export default function CustomersPage() {
               {filtered.map((c) => (
                 <Link
                   key={c.id}
-                  href={`/customers/${c.id}`}
+                  href={`/customers/view?id=${encodeURIComponent(c.id)}`}
                   className="block px-4 py-4 hover:bg-zinc-50"
                 >
                   <div className="flex items-center justify-between gap-3">

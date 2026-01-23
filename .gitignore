@@ -28,3 +28,7 @@ backend/*.sqlite*
 
 # IDE
 .vscode/
+
+# CDK
+cdk/cdk.out/
+cdk.out/
