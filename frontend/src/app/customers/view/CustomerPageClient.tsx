@@ -14,6 +14,13 @@ type Customer = {
   id: string;
   name: string;
   phone: string | null;
+  email: string | null;
+  dob: string | null;
+  gender: "male" | "female" | null;
+  anniversary: string | null;
+  referral_source: string | null;
+  marketing_consent: boolean;
+  whatsapp_opt_in: boolean;
   notes: string | null;
 };
 
@@ -26,6 +33,13 @@ export default function CustomerDetailPageClient({ id }: { id: string }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
+  const [anniversary, setAnniversary] = useState("");
+  const [referralSource, setReferralSource] = useState("");
+  const [marketingConsent, setMarketingConsent] = useState(true);
+  const [whatsappOptIn, setWhatsappOptIn] = useState(true);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -47,6 +61,13 @@ export default function CustomerDetailPageClient({ id }: { id: string }) {
         setInvoices(inv);
         setName(c.name);
         setPhone(c.phone ?? "");
+        setEmail(c.email ?? "");
+        setDob(c.dob ?? "");
+        setGender(c.gender ?? "");
+        setAnniversary(c.anniversary ?? "");
+        setReferralSource(c.referral_source ?? "");
+        setMarketingConsent(c.marketing_consent ?? true);
+        setWhatsappOptIn(c.whatsapp_opt_in ?? true);
         setNotes(c.notes ?? "");
       } catch (err) {
         if (cancelled) return;
@@ -79,10 +100,24 @@ export default function CustomerDetailPageClient({ id }: { id: string }) {
         body: JSON.stringify({
           name: name.trim(),
           phone: phone.trim() || null,
+          email: email.trim() || null,
+          dob: dob || null,
+          gender: gender || null,
+          anniversary: anniversary || null,
+          referral_source: referralSource.trim() || null,
+          marketing_consent: marketingConsent,
+          whatsapp_opt_in: whatsappOptIn,
           notes: notes.trim() || null,
         }),
       })) as Customer;
       setCustomer(updated);
+      setEmail(updated.email ?? "");
+      setDob(updated.dob ?? "");
+      setGender(updated.gender ?? "");
+      setAnniversary(updated.anniversary ?? "");
+      setReferralSource(updated.referral_source ?? "");
+      setMarketingConsent(updated.marketing_consent ?? true);
+      setWhatsappOptIn(updated.whatsapp_opt_in ?? true);
       setEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update customer");
@@ -153,6 +188,76 @@ export default function CustomerDetailPageClient({ id }: { id: string }) {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                     />
+                    <input
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Email (optional)"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-zinc-700">
+                        <span className="font-medium text-zinc-900">Date of birth</span>
+                        <input
+                          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          type="date"
+                          value={dob}
+                          onChange={(e) => setDob(e.target.value)}
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-zinc-700">
+                        <span className="font-medium text-zinc-900">Gender</span>
+                        <select
+                          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          value={gender}
+                          onChange={(e) => setGender(e.target.value as "male" | "female" | "")}
+                        >
+                          <option value="">Select gender (optional)</option>
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-zinc-700">
+                        <span className="font-medium text-zinc-900">Anniversary</span>
+                        <input
+                          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          type="date"
+                          value={anniversary}
+                          onChange={(e) => setAnniversary(e.target.value)}
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-zinc-700">
+                        <span className="font-medium text-zinc-900">Referral source</span>
+                        <input
+                          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="(optional)"
+                          value={referralSource}
+                          onChange={(e) => setReferralSource(e.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <div className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={marketingConsent}
+                          onChange={(e) => setMarketingConsent(e.target.checked)}
+                        />
+                        Marketing consent
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={whatsappOptIn}
+                          onChange={(e) => setWhatsappOptIn(e.target.checked)}
+                        />
+                        WhatsApp opt-in
+                      </label>
+                    </div>
                     <textarea
                       className="min-h-[96px] w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="Notes (optional)"
@@ -168,9 +273,22 @@ export default function CustomerDetailPageClient({ id }: { id: string }) {
                       {saving ? "Saving..." : "Save changes"}
                     </button>
                   </div>
-                ) : customer.notes ? (
-                  <div className="mt-3 text-sm text-zinc-800">{customer.notes}</div>
-                ) : null}
+                ) : (
+                  <div className="mt-3 space-y-2 text-sm text-zinc-800">
+                    <div>Email: {customer.email ?? "Not set"}</div>
+                    <div>
+                      Date of birth: {customer.dob ? new Date(customer.dob).toLocaleDateString("en-IN") : "Not set"}
+                    </div>
+                    <div>Gender: {customer.gender ?? "Not set"}</div>
+                    <div>
+                      Anniversary: {customer.anniversary ? new Date(customer.anniversary).toLocaleDateString("en-IN") : "Not set"}
+                    </div>
+                    <div>Referral source: {customer.referral_source ?? "Not set"}</div>
+                    <div>Marketing consent: {(customer.marketing_consent ?? true) ? "Yes" : "No"}</div>
+                    <div>WhatsApp opt-in: {(customer.whatsapp_opt_in ?? true) ? "Yes" : "No"}</div>
+                    {customer.notes ? <div>Notes: {customer.notes}</div> : null}
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4">
