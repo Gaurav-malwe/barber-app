@@ -25,6 +25,14 @@ class CustomerResponse(BaseModel):
     notes: str | None
 
 
+class CustomerListResponse(BaseModel):
+    items: list[CustomerResponse]
+    page: int
+    limit: int
+    total: int
+    has_more: bool
+
+
 class CustomerUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     phone: str | None = Field(default=None, min_length=6, max_length=20)

@@ -1,29 +1,52 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.customer import Customer
-from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
+from app.schemas.customer import CustomerCreate, CustomerListResponse, CustomerResponse, CustomerUpdate
 
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[CustomerResponse])
-def list_customers(db: Session = Depends(get_db), user=Depends(get_current_user)):
+@router.get("/", response_model=CustomerListResponse)
+def list_customers(
+    q: str | None = Query(default=None, max_length=200),
+    name: str | None = Query(default=None, max_length=200),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    raw_term = q if q is not None else name
+    term = raw_term.strip() if raw_term else None
+    base_query = db.query(Customer).filter(Customer.shop_id == user.shop.id)
+    if term:
+        base_query = base_query.filter(Customer.name.ilike(f"%{term}%"))
+
+    total = base_query.with_entities(func.count()).scalar() or 0
     customers = (
-        db.query(Customer)
-        .filter(Customer.shop_id == user.shop.id)
-        .order_by(Customer.created_at.desc())
-        .limit(200)
+        base_query.order_by(Customer.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
         .all()
     )
-    return [
+
+    items = [
         CustomerResponse(id=c.id, name=c.name, phone=c.phone, notes=c.notes)
         for c in customers
     ]
+    has_more = page * limit < total
+    return CustomerListResponse(
+        items=items,
+        page=page,
+        limit=limit,
+        total=total,
+        has_more=has_more,
+    )
 
 
 @router.post("/", response_model=CustomerResponse)

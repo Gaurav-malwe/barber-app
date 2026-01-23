@@ -25,6 +25,14 @@ type Customer = {
   phone: string | null;
 };
 
+type CustomerListResponse = {
+  items: Customer[];
+  page: number;
+  limit: number;
+  total: number;
+  has_more: boolean;
+};
+
 export default function NewBillPage() {
   return (
     <Suspense
@@ -52,7 +60,12 @@ function NewBillPageInner() {
   const { me, loading: meLoading, error: meError } = useMe();
 
   const [services, setServices] = useState<Service[] | null>(null);
-  const [customers, setCustomers] = useState<Customer[] | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerPage, setCustomerPage] = useState(1);
+  const [customerHasMore, setCustomerHasMore] = useState(true);
+  const [customerLoading, setCustomerLoading] = useState(false);
+  const [customerError, setCustomerError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedCustomerId, setSelectedCustomerId] = useState(preCustomerId);
@@ -64,6 +77,7 @@ function NewBillPageInner() {
   const [upiRef, setUpiRef] = useState("");
   const [saving, setSaving] = useState(false);
   const [discountRupees, setDiscountRupees] = useState("");
+  const customerLimit = 20;
 
   useEffect(() => {
     if (!me) return;
@@ -75,15 +89,72 @@ function NewBillPageInner() {
         setError(err instanceof Error ? err.message : "Failed to load services");
       }
     })();
+  }, [me]);
+
+  useEffect(() => {
+    if (!me) return;
+    let cancelled = false;
+    const term = customerQuery.trim();
+    const qs = term ? `&q=${encodeURIComponent(term)}` : "";
+
+    setCustomerLoading(true);
+    setCustomerError(null);
     (async () => {
       try {
-        const cust = (await apiFetch("/api/customers")) as Customer[];
-        setCustomers(cust);
-      } catch {
+        const data = await apiFetch(`/api/customers?page=1&limit=${customerLimit}${qs}`);
+        const normalizedItems = Array.isArray(data)
+          ? (data as Customer[])
+          : ((data as CustomerListResponse | null)?.items ?? []);
+        if (cancelled) return;
+        if (Array.isArray(data)) {
+          const filtered = term
+            ? normalizedItems.filter((c) => c.name.toLowerCase().includes(term.toLowerCase()))
+            : normalizedItems;
+          setCustomers(filtered);
+          setCustomerPage(1);
+          setCustomerHasMore(false);
+        } else {
+          setCustomers(normalizedItems);
+          setCustomerPage((data as CustomerListResponse).page);
+          setCustomerHasMore((data as CustomerListResponse).has_more);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setCustomerError(err instanceof Error ? err.message : "Failed to load customers");
         setCustomers([]);
+        setCustomerHasMore(false);
+        setCustomerPage(1);
+      } finally {
+        if (!cancelled) setCustomerLoading(false);
       }
     })();
-  }, [me]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [me, customerQuery]);
+
+  useEffect(() => {
+    if (!me || !preCustomerId) return;
+    if (customers.some((c) => c.id === preCustomerId)) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const cust = (await apiFetch(
+          `/api/customers/${encodeURIComponent(preCustomerId)}`
+        )) as Customer;
+        if (cancelled) return;
+        setCustomers((prev) => (prev.some((c) => c.id === cust.id) ? prev : [cust, ...prev]));
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [me, preCustomerId, customers]);
 
   useEffect(() => {
     if (!preCustomerId) return;
@@ -98,6 +169,32 @@ function NewBillPageInner() {
     }
     return null;
   }, [customers, selectedCustomerId, preCustomerName]);
+
+  async function loadMoreCustomers() {
+    if (customerLoading || !customerHasMore) return;
+    const nextPage = customerPage + 1;
+    const term = customerQuery.trim();
+    const qs = term ? `&q=${encodeURIComponent(term)}` : "";
+
+    setCustomerLoading(true);
+    try {
+      const data = await apiFetch(`/api/customers?page=${nextPage}&limit=${customerLimit}${qs}`);
+      if (Array.isArray(data)) {
+        setCustomers((prev) => [...prev, ...(data as Customer[])]);
+        setCustomerPage(nextPage);
+        setCustomerHasMore(false);
+      } else {
+        const typed = data as CustomerListResponse;
+        setCustomers((prev) => [...prev, ...typed.items]);
+        setCustomerPage(typed.page);
+        setCustomerHasMore(typed.has_more);
+      }
+    } catch (err) {
+      setCustomerError(err instanceof Error ? err.message : "Failed to load customers");
+    } finally {
+      setCustomerLoading(false);
+    }
+  }
 
   function addService(service: Service) {
     setItems((prev) => {
@@ -200,26 +297,77 @@ function NewBillPageInner() {
           <div className="rounded-lg border border-zinc-200 bg-white p-4">
             <div className="font-semibold">Customer (optional)</div>
             <div className="mt-2">
-              {!customers ? (
-                <div className="text-sm text-zinc-700">Loading customers...</div>
-              ) : customers.length === 0 ? (
-                <div className="text-sm text-zinc-700">
-                  No customers yet. <Link className="underline" href="/customers/new">Add one</Link>.
-                </div>
-              ) : (
-                <select
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900"
-                  value={selectedCustomerId}
-                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+              <input
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Search customer by name"
+                value={customerQuery}
+                onChange={(e) => setCustomerQuery(e.target.value)}
+              />
+
+              {customerError ? (
+                <div className="mt-2 text-sm text-rose-700">{customerError}</div>
+              ) : null}
+
+              <div
+                className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-zinc-200"
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) {
+                    loadMoreCustomers();
+                  }
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedCustomerId("")}
+                  className={`flex w-full items-center justify-between px-3 py-3 text-left text-sm ${
+                    selectedCustomerId === ""
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-white text-zinc-900 hover:bg-zinc-50"
+                  }`}
                 >
-                  <option value="">Walk-in / Not saved</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}{c.phone ? ` (${c.phone})` : ""}
-                    </option>
-                  ))}
-                </select>
-              )}
+                  <span>Walk-in / Not saved</span>
+                </button>
+
+                {customers.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setSelectedCustomerId(c.id)}
+                    className={`flex w-full items-center justify-between px-3 py-3 text-left text-sm ${
+                      selectedCustomerId === c.id
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-white text-zinc-900 hover:bg-zinc-50"
+                    }`}
+                  >
+                    <span>
+                      {c.name}
+                      {c.phone ? ` (${c.phone})` : ""}
+                    </span>
+                  </button>
+                ))}
+
+                {customerLoading ? (
+                  <div className="px-3 py-3 text-sm text-zinc-700">Loading customers...</div>
+                ) : null}
+
+                {!customerLoading && customers.length === 0 ? (
+                  <div className="px-3 py-3 text-sm text-zinc-700">
+                    {customerQuery.trim()
+                      ? "No matching customers"
+                      : "No customers yet."}
+                    {!customerQuery.trim() ? (
+                      <Link className="ml-1 underline" href="/customers/new">
+                        Add one
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {!customerLoading && customerHasMore ? (
+                  <div className="px-3 py-2 text-xs text-zinc-500">Scroll to load more...</div>
+                ) : null}
+              </div>
             </div>
           </div>
 

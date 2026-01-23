@@ -16,6 +16,14 @@ type Customer = {
   notes: string | null;
 };
 
+type CustomerListResponse = {
+  items: Customer[];
+  page: number;
+  limit: number;
+  total: number;
+  has_more: boolean;
+};
+
 export default function CustomersPage() {
   const { me, loading: meLoading, error: meError } = useMe();
   const [customers, setCustomers] = useState<Customer[] | null>(null);
@@ -28,9 +36,13 @@ export default function CustomersPage() {
 
     (async () => {
       try {
-        const data = (await apiFetch("/api/customers")) as Customer[];
+        const data = await apiFetch("/api/customers?page=1&limit=200");
         if (cancelled) return;
-        setCustomers(data);
+        if (Array.isArray(data)) {
+          setCustomers(data as Customer[]);
+        } else {
+          setCustomers((data as CustomerListResponse).items);
+        }
         setError(null);
       } catch (err) {
         if (cancelled) return;
