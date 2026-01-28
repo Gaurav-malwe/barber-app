@@ -84,37 +84,47 @@ export default function NewCustomerPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
               <div className="grid gap-3 md:grid-cols-2">
-                <input
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Date of birth (optional)"
-                  type="date"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                />
-                <select
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value as "male" | "female" | "")}
-                >
-                  <option value="">Gender (optional)</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
+                <label className="space-y-2 text-sm text-zinc-700">
+                  <span className="font-medium text-zinc-900">Date of birth</span>
+                  <input
+                    className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                  />
+                </label>
+                <label className="space-y-2 text-sm text-zinc-700">
+                  <span className="font-medium text-zinc-900">Gender</span>
+                  <select
+                    className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as "male" | "female" | "")}
+                  >
+                    <option value="">Select gender (optional)</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </label>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <input
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Anniversary (optional)"
-                  type="date"
-                  value={anniversary}
-                  onChange={(e) => setAnniversary(e.target.value)}
-                />
-                <input
-                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Referral source (optional)"
-                  value={referralSource}
-                  onChange={(e) => setReferralSource(e.target.value)}
-                />
+                <label className="space-y-2 text-sm text-zinc-700">
+                  <span className="font-medium text-zinc-900">Anniversary</span>
+                  <input
+                    className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    type="date"
+                    value={anniversary}
+                    onChange={(e) => setAnniversary(e.target.value)}
+                  />
+                </label>
+                <label className="space-y-2 text-sm text-zinc-700">
+                  <span className="font-medium text-zinc-900">Referral source</span>
+                  <input
+                    className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="(optional)"
+                    value={referralSource}
+                    onChange={(e) => setReferralSource(e.target.value)}
+                  />
+                </label>
               </div>
               <div className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <label className="flex items-center gap-2">
